@@ -1,0 +1,130 @@
+import 'package:adb_helper/core/settings/app_settings.dart';
+import 'package:adb_helper/l10n/app_localizations.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+class SettingsScreen extends ConsumerWidget {
+  const SettingsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final settings = ref.watch(appSettingsProvider);
+    final controller = ref.read(appSettingsProvider.notifier);
+
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.settings)),
+      body: ListView(
+        children: [
+          _sectionTitle(context, l10n.appearance),
+          ListTile(
+            leading: const Icon(Icons.palette_outlined),
+            title: Text(l10n.theme),
+            trailing: DropdownButton<AppTheme>(
+              value: settings.theme,
+              onChanged: (value) {
+                if (value != null) controller.setTheme(value);
+              },
+              items: [
+                DropdownMenuItem(value: AppTheme.system, child: Text(l10n.themeSystem)),
+                DropdownMenuItem(value: AppTheme.light, child: Text(l10n.themeLight)),
+                DropdownMenuItem(value: AppTheme.dark, child: Text(l10n.themeDark)),
+                DropdownMenuItem(value: AppTheme.amoled, child: Text(l10n.themeAmoled)),
+              ],
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.language),
+            title: Text(l10n.language),
+            trailing: DropdownButton<AppLanguage>(
+              value: settings.language,
+              onChanged: (value) {
+                if (value != null) controller.setLanguage(value);
+              },
+              items: [
+                DropdownMenuItem(value: AppLanguage.system, child: Text(l10n.languageSystem)),
+                DropdownMenuItem(value: AppLanguage.simplifiedChinese, child: Text(l10n.languageSimplified)),
+                DropdownMenuItem(value: AppLanguage.traditionalChinese, child: Text(l10n.languageTraditional)),
+                DropdownMenuItem(value: AppLanguage.english, child: Text(l10n.languageEnglish)),
+              ],
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.text_fields),
+            title: Text(l10n.terminalFont),
+            subtitle: Slider(
+              min: 10,
+              max: 24,
+              divisions: 14,
+              label: settings.terminalFontSize.round().toString(),
+              value: settings.terminalFontSize,
+              onChanged: controller.setTerminalFontSize,
+            ),
+          ),
+          const Divider(height: 1),
+          _sectionTitle(context, l10n.terminal),
+          SwitchListTile(
+            secondary: const Icon(Icons.warning_amber_outlined),
+            title: Text(l10n.dangerousActions),
+            subtitle: Text(l10n.dangerousActionsDescription),
+            value: settings.confirmDangerousActions,
+            onChanged: controller.setDangerousConfirmation,
+          ),
+          const Divider(height: 1),
+          _sectionTitle(context, l10n.platformTools),
+          ListTile(
+            leading: const Icon(Icons.folder_open_outlined),
+            title: Text(l10n.platformTools),
+            subtitle: Text(settings.platformToolsPath.isEmpty ? l10n.defaultTools : settings.platformToolsPath),
+            trailing: IconButton(
+              tooltip: l10n.editPath,
+              onPressed: () => _editPlatformToolsPath(context, ref, settings.platformToolsPath),
+              icon: const Icon(Icons.edit_outlined),
+            ),
+          ),
+          const Divider(height: 1),
+          _sectionTitle(context, l10n.about),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+            child: Text(l10n.demoNotice),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionTitle(BuildContext context, String title) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
+      child: Text(title, style: Theme.of(context).textTheme.titleSmall),
+    );
+  }
+
+  Future<void> _editPlatformToolsPath(
+    BuildContext context,
+    WidgetRef ref,
+    String currentPath,
+  ) async {
+    final l10n = AppLocalizations.of(context);
+    final pathController = TextEditingController(text: currentPath);
+    final path = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.platformTools),
+        content: TextField(
+          controller: pathController,
+          decoration: InputDecoration(labelText: l10n.path),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, pathController.text.trim()),
+            child: Text(l10n.save),
+          ),
+        ],
+      ),
+    );
+    pathController.dispose();
+    if (path != null) await ref.read(appSettingsProvider.notifier).setPlatformToolsPath(path);
+  }
+}
