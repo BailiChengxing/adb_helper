@@ -279,7 +279,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get installApk => 'Install APK';
 
   @override
-  String get searchApplications => 'Search packages';
+  String get searchApplications => 'Search app name or package';
 
   @override
   String get showSystemApps => 'Show system apps';
@@ -351,7 +351,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get fileDeviceHelp =>
-      'Connect a device over wireless ADB or USB OTG first.';
+      'Browse local files or connect a device over wireless ADB or USB OTG.';
 
   @override
   String get targetDevice => 'Target device';
@@ -377,6 +377,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get scanLocalNetwork => 'Scan local network';
+
+  @override
+  String wirelessScanResult(int count) {
+    return 'Found $count wireless ADB device(s)';
+  }
+
+  @override
+  String get noWirelessDevicesFound =>
+      'No reachable wireless ADB devices found. Ensure the device is on the same network and Wireless debugging or TCP/IP port 5555 is enabled.';
+
+  @override
+  String get fileAccessPermissionRequired =>
+      'Allow ADB Helper to manage all files to browse internal storage, then retry.';
 
   @override
   String get connectByIp => 'Connect by IP and port';

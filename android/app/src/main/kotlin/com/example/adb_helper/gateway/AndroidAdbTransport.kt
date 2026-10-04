@@ -5,6 +5,8 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.ApplicationInfo
+import android.content.pm.PackageInfo
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbDeviceConnection
 import android.hardware.usb.UsbConstants
@@ -13,7 +15,10 @@ import android.hardware.usb.UsbInterface
 import android.hardware.usb.UsbManager
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
+import android.net.wifi.WifiManager
 import android.net.Uri
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.os.Build
 import io.github.muntashirakon.adb.AdbConnection as WirelessAdbConnection
 import io.github.muntashirakon.adb.PairingConnectionCtx
@@ -26,6 +31,9 @@ import java.io.InputStream
 import java.io.InputStreamReader
 import java.io.OutputStream
 import java.net.InetAddress
+import java.net.Inet4Address
+import java.net.InetSocketAddress
+import java.net.NetworkInterface
 import java.net.ServerSocket
 import java.net.Socket
 import java.nio.charset.StandardCharsets
@@ -34,9 +42,13 @@ import java.security.Security
 import java.security.cert.Certificate
 import java.security.cert.CertificateFactory
 import java.util.Date
+import java.text.SimpleDateFormat
+import java.util.Locale
 import java.util.UUID
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.Executors
+import java.util.concurrent.Future
 import java.util.concurrent.atomic.AtomicBoolean
 import org.bouncycastle.asn1.x500.X500Name
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
@@ -70,6 +82,35 @@ class AndroidAdbTransport(
         }
         result += discoverWirelessDevices()
         return result
+    }
+
+    fun scanLocalNetwork(): List<Map<String, String>> {
+        val mdnsExecutor = Executors.newSingleThreadExecutor()
+        val mdnsScan = mdnsExecutor.submit<List<WirelessEndpoint>> {
+            findWirelessEndpoints(5, TimeUnit.SECONDS)
+        }
+        val active = try {
+            (scanLegacyAdbEndpoints() + mdnsScan.get(10, TimeUnit.SECONDS))
+                .distinctBy { it.serial }
+        } catch (error: java.util.concurrent.ExecutionException) {
+            mdnsScan.cancel(true)
+            val cause = error.cause
+            if (cause is Exception) throw cause
+            throw error
+        } catch (error: Exception) {
+            mdnsScan.cancel(true)
+            throw error
+        } finally {
+            mdnsExecutor.shutdownNow()
+        }
+        active.forEach(::saveWirelessEndpoint)
+        return active.map { endpoint ->
+            mapOf(
+                "id" to endpoint.serial,
+                "label" to endpoint.label,
+                "transport" to "wireless",
+            )
+        }
     }
 
     fun pair(host: String, port: Int, code: String): Map<String, Any?> {
@@ -151,6 +192,58 @@ class AndroidAdbTransport(
                 .sortedBy { it["packageName"] as String }
                 .toList()
         }
+
+    fun listLocalApplications(): List<Map<String, Any?>> =
+        installedPackages().mapNotNull { packageInfo ->
+            val applicationInfo = packageInfo.applicationInfo ?: return@mapNotNull null
+            hostApplicationMetadata(packageInfo, applicationInfo)
+        }.sortedBy { it["label"] as String }
+
+    fun addHostApplicationMetadata(
+        remote: Map<String, Any?>,
+    ): Map<String, Any?> {
+        val packageName = remote["packageName"] as? String ?: return remote
+        val applicationInfo = try {
+            context.packageManager.getApplicationInfo(packageName, 0)
+        } catch (_: android.content.pm.PackageManager.NameNotFoundException) {
+            return remote
+        }
+        val metadata = hostApplicationMetadata(null, applicationInfo)
+        return remote + metadata.filterKeys { it == "label" || it == "icon" }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun installedPackages(): List<PackageInfo> =
+        context.packageManager.getInstalledPackages(
+            android.content.pm.PackageManager.GET_META_DATA,
+        )
+
+    private fun hostApplicationMetadata(
+        packageInfo: PackageInfo?,
+        applicationInfo: ApplicationInfo,
+    ): Map<String, Any?> {
+        val drawable = context.packageManager.getApplicationIcon(applicationInfo)
+        val width = drawable.intrinsicWidth.takeIf { it > 0 }?.coerceAtMost(96) ?: 64
+        val height = drawable.intrinsicHeight.takeIf { it > 0 }?.coerceAtMost(96) ?: 64
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        drawable.setBounds(0, 0, width, height)
+        drawable.draw(canvas)
+        val output = java.io.ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)
+        bitmap.recycle()
+        val metadata = linkedMapOf<String, Any?>(
+            "packageName" to applicationInfo.packageName,
+            "label" to context.packageManager.getApplicationLabel(applicationInfo).toString(),
+            "icon" to output.toByteArray(),
+            "systemApp" to (applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM != 0),
+        )
+        if (packageInfo != null) {
+            metadata["versionName"] = packageInfo.versionName
+            metadata["versionCode"] = packageInfo.longVersionCode
+        }
+        return metadata
+    }
 
     fun deviceInformation(transport: String, serial: String): Map<String, String> =
         withAdbConnection(transport, serial) { connection ->
@@ -341,6 +434,84 @@ class AndroidAdbTransport(
             "mode" to entry["mode"]!!,
             "mtime" to entry["mtime"]!!,
         )
+    }
+
+    fun listLocalFiles(path: String): List<Map<String, Any>> {
+        val directory = File(validateRemotePath(path)).canonicalFile
+        if (!directory.exists()) throw IOException("Directory not found: $path")
+        if (!directory.isDirectory) throw IOException("Not a directory: $path")
+        val children = directory.listFiles()
+            ?: throw IOException("Unable to read directory: $path")
+        return children.sortedWith(compareBy<File>({ !it.isDirectory }, { it.name.lowercase() }))
+            .map { child ->
+                mapOf(
+                    "name" to child.name,
+                    "path" to child.absolutePath,
+                    "isDirectory" to child.isDirectory,
+                    "size" to if (child.isFile) child.length() else 0L,
+                    "mode" to localFileMode(child),
+                    "mtime" to SimpleDateFormat(
+                        "yyyy-MM-dd HH:mm",
+                        Locale.getDefault(),
+                    ).format(Date(child.lastModified())),
+                )
+            }
+    }
+
+    fun statLocalFile(path: String): Map<String, Any> {
+        val file = File(validateRemotePath(path)).canonicalFile
+        if (!file.exists()) throw IOException("File not found: $path")
+        return mapOf(
+            "size" to if (file.isFile) file.length() else 0L,
+            "mode" to localFileMode(file),
+            "mtime" to SimpleDateFormat(
+                "yyyy-MM-dd HH:mm",
+                Locale.getDefault(),
+            ).format(Date(file.lastModified())),
+        )
+    }
+
+    fun pushLocalFile(documentUri: String, path: String) {
+        val destination = File(validateRemotePath(path)).canonicalFile
+        context.contentResolver.openInputStream(Uri.parse(documentUri))?.use { input ->
+            destination.outputStream().use { output -> input.copyTo(output) }
+        } ?: throw IOException("Unable to read the selected document.")
+    }
+
+    fun pullLocalFile(path: String, documentUri: String) {
+        val source = File(validateRemotePath(path)).canonicalFile
+        if (!source.isFile) throw IOException("Not a file: $path")
+        val output = context.contentResolver.openOutputStream(Uri.parse(documentUri), "wt")
+            ?: throw IOException("Unable to write to the selected document.")
+        source.inputStream().use { input -> output.use { input.copyTo(it) } }
+    }
+
+    fun deleteLocalFile(path: String) {
+        val file = File(validateRemotePath(path)).canonicalFile
+        val deleted = if (file.isDirectory) file.deleteRecursively() else file.delete()
+        if (!deleted) throw IOException("Unable to delete: $path")
+    }
+
+    fun createLocalDirectory(path: String) {
+        val directory = File(validateRemotePath(path)).canonicalFile
+        if (!directory.mkdirs() && !directory.isDirectory) {
+            throw IOException("Unable to create directory: $path")
+        }
+    }
+
+    fun renameLocalFile(from: String, to: String) {
+        val source = File(validateRemotePath(from)).canonicalFile
+        val destination = File(validateRemotePath(to)).canonicalFile
+        if (!source.renameTo(destination)) {
+            throw IOException("Unable to rename $from to $to.")
+        }
+    }
+
+    private fun localFileMode(file: File): String = buildString {
+        append(if (file.isDirectory) 'd' else '-')
+        append(if (file.canRead()) 'r' else '-')
+        append(if (file.canWrite()) 'w' else '-')
+        append(if (file.canExecute()) 'x' else '-')
     }
 
     fun pushFile(transport: String, serial: String, documentUri: String, path: String) {
@@ -988,12 +1159,16 @@ class AndroidAdbTransport(
                 latch.countDown()
             }
         }
-        nsdManager.discoverServices(
-            AdbProtocolSpec.WIRELESS_SERVICE_TYPE,
-            NsdManager.PROTOCOL_DNS_SD,
-            listener,
-        )
+        val multicastLock = context.getSystemService(WifiManager::class.java)
+            ?.createMulticastLock("adb_helper_wireless_scan")
+        multicastLock?.setReferenceCounted(false)
+        multicastLock?.acquire()
         try {
+            nsdManager.discoverServices(
+                AdbProtocolSpec.WIRELESS_SERVICE_TYPE,
+                NsdManager.PROTOCOL_DNS_SD,
+                listener,
+            )
             Thread.sleep(unit.toMillis(timeout))
         } finally {
             try {
@@ -1002,6 +1177,7 @@ class AndroidAdbTransport(
                 latch.countDown()
             }
             latch.await(2, TimeUnit.SECONDS)
+            if (multicastLock?.isHeld == true) multicastLock.release()
         }
         val resolutionDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2)
         synchronized(resolutionLock) {
@@ -1013,6 +1189,80 @@ class AndroidAdbTransport(
         }
         return found.distinctBy { it.serial }
     }
+
+    private fun scanLegacyAdbEndpoints(): List<WirelessEndpoint> {
+        val interfaces = NetworkInterface.getNetworkInterfaces() ?: return emptyList()
+        val candidates = interfaces.toList()
+            .filter { it.isUp && !it.isLoopback }
+            .flatMap { it.interfaceAddresses }
+            .flatMap { interfaceAddress ->
+                val local = interfaceAddress.address as? Inet4Address
+                    ?: return@flatMap emptyList()
+                if (!local.isSiteLocalAddress) return@flatMap emptyList()
+                val prefix = interfaceAddress.networkPrefixLength.toInt()
+                if (prefix !in 16..30) return@flatMap emptyList()
+                val localValue = ipv4ToLong(local)
+                val mask = (0xffffffffL shl (32 - prefix)) and 0xffffffffL
+                val firstHost = (localValue and mask) + 1
+                val lastHost = (localValue and mask) + (mask xor 0xffffffffL) - 1
+                if (lastHost < firstHost) return@flatMap emptyList()
+                val start = if (lastHost - firstHost + 1 > MAX_SUBNET_SCAN_HOSTS) {
+                    (localValue - MAX_SUBNET_SCAN_HOSTS / 2)
+                        .coerceAtLeast(firstHost)
+                } else firstHost
+                val end = if (lastHost - firstHost + 1 > MAX_SUBNET_SCAN_HOSTS) {
+                    (start + MAX_SUBNET_SCAN_HOSTS - 1).coerceAtMost(lastHost)
+                } else lastHost
+                (start..end)
+                    .filter { it != localValue }
+                    .map(::longToIpv4)
+            }
+            .distinct()
+            .take(MAX_SUBNET_SCAN_HOSTS.toInt())
+        if (candidates.isEmpty()) return emptyList()
+
+        val scanner = Executors.newFixedThreadPool(SUBNET_SCAN_THREADS)
+        val futures = try {
+            candidates.map { host ->
+                scanner.submit<WirelessEndpoint?> {
+                    try {
+                        Socket().use { socket ->
+                            socket.connect(
+                                InetSocketAddress(host, LEGACY_ADB_PORT),
+                                SUBNET_CONNECT_TIMEOUT_MS,
+                            )
+                        }
+                        WirelessEndpoint(host, LEGACY_ADB_PORT, host)
+                    } catch (_: IOException) {
+                        null
+                    }
+                }
+            }
+        } finally {
+            scanner.shutdown()
+        }
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(SUBNET_SCAN_TIMEOUT_SECONDS)
+        val reachable = mutableListOf<WirelessEndpoint>()
+        for (future in futures) {
+            val remaining = deadline - System.nanoTime()
+            if (remaining <= 0) break
+            try {
+                future.get(remaining, TimeUnit.NANOSECONDS)?.let(reachable::add)
+            } catch (_: Exception) {
+                future.cancel(true)
+            }
+        }
+        scanner.shutdownNow()
+        return reachable
+    }
+
+    private fun ipv4ToLong(address: Inet4Address): Long =
+        address.address.fold(0L) { value, byte -> (value shl 8) or (byte.toLong() and 0xff) }
+
+    private fun longToIpv4(value: Long): String =
+        listOf(24, 16, 8, 0).joinToString(".") { shift ->
+            ((value ushr shift) and 0xff).toString()
+        }
 
     private fun saveWirelessEndpoint(endpoint: WirelessEndpoint) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -1186,6 +1436,11 @@ class AndroidAdbTransport(
     companion object {
         private const val PREFS = "wireless_adb"
         private const val USB_TRANSFER_TIMEOUT_MS = 1_000
+        private const val LEGACY_ADB_PORT = 5555
+        private const val MAX_SUBNET_SCAN_HOSTS = 1024L
+        private const val SUBNET_SCAN_THREADS = 64
+        private const val SUBNET_CONNECT_TIMEOUT_MS = 400
+        private const val SUBNET_SCAN_TIMEOUT_SECONDS = 8L
         private const val SYNC_DATA_SIZE = 64 * 1024
         private const val MAX_SYNC_ERROR_SIZE = 64 * 1024
         private val PACKAGE_NAME = Regex("""[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)+""")

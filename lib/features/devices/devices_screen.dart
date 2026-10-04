@@ -22,6 +22,9 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen>
   final _portController = TextEditingController();
   GoRouter? _router;
   String? _lastLocation;
+  bool _scanning = false;
+  bool _hasScannedNetwork = false;
+  List<DeviceRef> _scannedDevices = const [];
 
   @override
   void initState() {
@@ -76,8 +79,13 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen>
         actions: [
           IconButton(
             tooltip: l10n.scanLocalNetwork,
-            onPressed: () => ref.invalidate(availableDevicesProvider),
-            icon: const Icon(Icons.wifi_find),
+            onPressed: _scanning ? null : _scanLocalNetwork,
+            icon: _scanning
+                ? const SizedBox.square(
+                    dimension: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.wifi_find),
           ),
           IconButton(
             tooltip: l10n.refresh,
@@ -141,7 +149,9 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen>
           ),
           Expanded(
             child: devicesAsync.when(
-              data: (devices) => _DeviceWorkbench(devices: devices),
+              data: (devices) => _DeviceWorkbench(
+                devices: _mergeDevices(devices, _scannedDevices),
+              ),
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, stack) => _LoadFailure(
                 message: '$error',
@@ -153,6 +163,51 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen>
         ],
       ),
     );
+  }
+
+  Future<void> _scanLocalNetwork() async {
+    final l10n = AppLocalizations.of(context);
+    setState(() => _scanning = true);
+    try {
+      final results = await ref.read(deviceGatewayProvider).scanLocalNetwork();
+      if (!mounted) return;
+      setState(() {
+        _scannedDevices = results;
+        _hasScannedNetwork = true;
+      });
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              results.isEmpty
+                  ? l10n.noWirelessDevicesFound
+                  : l10n.wirelessScanResult(results.length),
+            ),
+          ),
+        );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$error')));
+      }
+    } finally {
+      if (mounted) setState(() => _scanning = false);
+    }
+  }
+
+  List<DeviceRef> _mergeDevices(
+    List<DeviceRef> discovered,
+    List<DeviceRef> scanned,
+  ) {
+    final devices = <String, DeviceRef>{};
+    final currentDevices = _hasScannedNetwork
+        ? discovered.where((device) => device.transport != Transport.wireless)
+        : discovered;
+    for (final device in [...currentDevices, ...scanned]) {
+      devices[device.id] = device;
+    }
+    return devices.values.toList(growable: false);
   }
 
   Future<void> _connectDirect() async {

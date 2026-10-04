@@ -114,7 +114,11 @@ class _AppsScreenState extends ConsumerState<AppsScreen> {
                 final query = _searchController.text.trim().toLowerCase();
                 final apps = (snapshot.data ?? const <InstalledApp>[])
                     .where((app) => _showSystemApps || !app.systemApp)
-                    .where((app) => app.packageName.toLowerCase().contains(query))
+                    .where(
+                      (app) =>
+                          app.packageName.toLowerCase().contains(query) ||
+                          (app.label?.toLowerCase().contains(query) ?? false),
+                    )
                     .toList(growable: false);
                 if (apps.isEmpty) {
                   return Center(child: Text(l10n.noApplications));
@@ -127,15 +131,21 @@ class _AppsScreenState extends ConsumerState<AppsScreen> {
                     final app = apps[index];
                     return ListTile(
                       leading: CircleAvatar(
-                        child: Icon(
-                          app.systemApp
-                              ? Icons.android
-                              : Icons.apps_outlined,
-                        ),
+                        backgroundImage: app.iconBytes == null
+                            ? null
+                            : MemoryImage(app.iconBytes!),
+                        child: app.iconBytes == null
+                            ? Icon(
+                                app.systemApp
+                                    ? Icons.android
+                                    : Icons.apps_outlined,
+                              )
+                            : null,
                       ),
-                      title: Text(app.packageName),
+                      title: Text(app.label ?? app.packageName),
                       subtitle: Text(
                         [
+                          app.packageName,
                           if (app.systemApp) l10n.systemApp,
                           if (app.versionName != null) app.versionName!,
                           if (app.versionCode != null)

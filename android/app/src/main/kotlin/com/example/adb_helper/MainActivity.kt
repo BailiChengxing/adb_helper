@@ -3,9 +3,11 @@ package com.example.adb_helper
 import android.content.pm.PackageManager
 import android.content.Intent
 import android.net.Uri
+import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.os.Build
+import android.provider.Settings
 import com.example.adb_helper.gateway.AndroidShellBackend
 import com.example.adb_helper.gateway.AndroidAdbTransport
 import com.example.adb_helper.gateway.ShellEventSink
@@ -32,6 +34,7 @@ class MainActivity : FlutterActivity(), MethodChannel.MethodCallHandler,
     private val adbTransport by lazy { AndroidAdbTransport(applicationContext, this) }
     @Volatile private var eventSink: EventChannel.EventSink? = null
     private var pendingDocumentResult: MethodChannel.Result? = null
+    private var pendingFileAccessResult: MethodChannel.Result? = null
     private var pendingShizukuPermissionCallback: ((Boolean) -> Unit)? = null
     private val shizukuPermissionListener =
         Shizuku.OnRequestPermissionResultListener { requestCode, grantResult ->
@@ -56,6 +59,7 @@ class MainActivity : FlutterActivity(), MethodChannel.MethodCallHandler,
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
             "discover" -> discover(result)
+            "scanLocalNetwork" -> scanLocalNetwork(result)
             "pair" -> pair(call, result)
             "connectWireless" -> connectWireless(call, result)
             "openSession" -> openSession(call, result)
@@ -63,33 +67,21 @@ class MainActivity : FlutterActivity(), MethodChannel.MethodCallHandler,
             "closeSession" -> closeSession(call, result)
             "execOnce" -> execOnce(call, result)
             "requestShizukuPermission" -> requestShizukuPermission(result)
+            "requestLocalFileAccess" -> requestLocalFileAccess(result)
             "executionCapabilities" -> executionCapabilities(call, result)
             "pickDocument" -> pickDocument(call, result)
             "listApplications" -> withAdbArgs(call, result) { transport, serial, _ ->
-                adbTransport.listApplications(transport, serial)
+                if (transport == "local") {
+                    adbTransport.listLocalApplications()
+                } else {
+                    adbTransport.listApplications(transport, serial)
+                        .map(adbTransport::addHostApplicationMetadata)
+                }
             }
             "deviceInformation" -> deviceInformation(call, result)
             "listHostApplications" -> executor.execute {
                 try {
-                    val apps = packageManager.getInstalledPackages(
-                        PackageManager.GET_ACTIVITIES or PackageManager.GET_META_DATA,
-                    ).mapNotNull { packageInfo ->
-                        val applicationInfo = packageInfo.applicationInfo ?: return@mapNotNull null
-                        mapOf(
-                            "packageName" to packageInfo.packageName,
-                            "label" to packageManager.getApplicationLabel(applicationInfo).toString(),
-                            "versionName" to packageInfo.versionName,
-                            "versionCode" to if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                                packageInfo.longVersionCode
-                            } else {
-                                @Suppress("DEPRECATION")
-                                packageInfo.versionCode.toLong()
-                            },
-                            "systemApp" to (
-                                applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM != 0
-                            ),
-                        )
-                    }.sortedBy { it["label"] as String }
+                    val apps = adbTransport.listLocalApplications()
                     mainHandler.post { result.success(apps) }
                 } catch (error: Exception) {
                     mainHandler.post {
@@ -140,40 +132,42 @@ class MainActivity : FlutterActivity(), MethodChannel.MethodCallHandler,
                 adbTransport.openApplicationSettings(transport, serial, packageName)
             }
             "listFiles" -> withAdbArgs(call, result) { transport, serial, args ->
-                adbTransport.listFiles(transport, serial, args.requiredString("path"))
+                val path = args.requiredString("path")
+                if (transport == "local") adbTransport.listLocalFiles(path)
+                else adbTransport.listFiles(transport, serial, path)
             }
             "pushFile" -> withAdbArgs(call, result) { transport, serial, args ->
-                adbTransport.pushFile(
-                    transport,
-                    serial,
-                    args.requiredString("uri"),
-                    args.requiredString("path"),
-                )
+                val uri = args.requiredString("uri")
+                val path = args.requiredString("path")
+                if (transport == "local") adbTransport.pushLocalFile(uri, path)
+                else adbTransport.pushFile(transport, serial, uri, path)
             }
             "pullFile" -> withAdbArgs(call, result) { transport, serial, args ->
-                adbTransport.pullFile(
-                    transport,
-                    serial,
-                    args.requiredString("path"),
-                    args.requiredString("uri"),
-                )
+                val path = args.requiredString("path")
+                val uri = args.requiredString("uri")
+                if (transport == "local") adbTransport.pullLocalFile(path, uri)
+                else adbTransport.pullFile(transport, serial, path, uri)
             }
             "deleteFile" -> withAdbArgs(call, result) { transport, serial, args ->
-                adbTransport.deleteFile(transport, serial, args.requiredString("path"))
+                val path = args.requiredString("path")
+                if (transport == "local") adbTransport.deleteLocalFile(path)
+                else adbTransport.deleteFile(transport, serial, path)
             }
             "createDirectory" -> withAdbArgs(call, result) { transport, serial, args ->
-                adbTransport.createDirectory(transport, serial, args.requiredString("path"))
+                val path = args.requiredString("path")
+                if (transport == "local") adbTransport.createLocalDirectory(path)
+                else adbTransport.createDirectory(transport, serial, path)
             }
             "renameFile" -> withAdbArgs(call, result) { transport, serial, args ->
-                adbTransport.renameFile(
-                    transport,
-                    serial,
-                    args.requiredString("from"),
-                    args.requiredString("to"),
-                )
+                val from = args.requiredString("from")
+                val to = args.requiredString("to")
+                if (transport == "local") adbTransport.renameLocalFile(from, to)
+                else adbTransport.renameFile(transport, serial, from, to)
             }
             "statFile" -> withAdbArgs(call, result) { transport, serial, args ->
-                adbTransport.statFile(transport, serial, args.requiredString("path"))
+                val path = args.requiredString("path")
+                if (transport == "local") adbTransport.statLocalFile(path)
+                else adbTransport.statFile(transport, serial, path)
             }
             else -> result.notImplemented()
         }
@@ -262,7 +256,8 @@ class MainActivity : FlutterActivity(), MethodChannel.MethodCallHandler,
                 val transport = args["transport"] as? String
                     ?: throw IllegalArgumentException("An ADB transport is required.")
                 val serial = args["serial"] as? String
-                    ?: throw IllegalArgumentException("An ADB device is required.")
+                    ?: if (transport == "local") "local"
+                    else throw IllegalArgumentException("An ADB device is required.")
                 val value = operation(transport, serial, args)
                 mainHandler.post { result.success(if (value == Unit) null else value) }
             } catch (error: Exception) {
@@ -340,14 +335,58 @@ class MainActivity : FlutterActivity(), MethodChannel.MethodCallHandler,
         }
     }
 
+    private fun requestLocalFileAccess(result: MethodChannel.Result) {
+        if (
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.R ||
+            Environment.isExternalStorageManager()
+        ) {
+            result.success(true)
+            return
+        }
+        if (pendingFileAccessResult != null) {
+            result.error(
+                "FILE_ACCESS_REQUEST_PENDING",
+                "A storage access request is already open.",
+                null,
+            )
+            return
+        }
+        pendingFileAccessResult = result
+        try {
+            val intent = Intent(
+                Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                Uri.parse("package:$packageName"),
+            )
+            startActivityForResult(intent, FILE_ACCESS_REQUEST_CODE)
+        } catch (error: Exception) {
+            pendingFileAccessResult = null
+            result.error(
+                "FILE_ACCESS_REQUEST_FAILED",
+                error.message ?: "Unable to open storage access settings.",
+                null,
+            )
+        }
+    }
+
     @Deprecated("Deprecated in Android")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode != DOCUMENT_REQUEST_CODE) return
-        val pending = pendingDocumentResult ?: return
-        pendingDocumentResult = null
-        val uri: Uri? = if (resultCode == RESULT_OK) data?.data else null
-        pending.success(uri?.toString())
+        when (requestCode) {
+            DOCUMENT_REQUEST_CODE -> {
+                val pending = pendingDocumentResult ?: return
+                pendingDocumentResult = null
+                val uri: Uri? = if (resultCode == RESULT_OK) data?.data else null
+                pending.success(uri?.toString())
+            }
+            FILE_ACCESS_REQUEST_CODE -> {
+                val pending = pendingFileAccessResult ?: return
+                pendingFileAccessResult = null
+                pending.success(
+                    Build.VERSION.SDK_INT < Build.VERSION_CODES.R ||
+                        Environment.isExternalStorageManager(),
+                )
+            }
+        }
     }
 
     private fun Map<String, Any?>.requiredString(key: String): String =
@@ -361,6 +400,23 @@ class MainActivity : FlutterActivity(), MethodChannel.MethodCallHandler,
             } catch (error: Exception) {
                 mainHandler.post {
                     result.error("DISCOVERY_FAILED", error.message ?: "Unable to discover ADB devices.", null)
+                }
+            }
+        }
+    }
+
+    private fun scanLocalNetwork(result: MethodChannel.Result) {
+        executor.execute {
+            try {
+                val devices = adbTransport.scanLocalNetwork()
+                mainHandler.post { result.success(devices) }
+            } catch (error: Exception) {
+                mainHandler.post {
+                    result.error(
+                        "NETWORK_SCAN_FAILED",
+                        error.message ?: "Unable to scan the local network.",
+                        null,
+                    )
                 }
             }
         }
@@ -564,6 +620,12 @@ class MainActivity : FlutterActivity(), MethodChannel.MethodCallHandler,
             null,
         )
         pendingDocumentResult = null
+        pendingFileAccessResult?.error(
+            "ACTIVITY_DESTROYED",
+            "The storage access request was interrupted because the activity was closed.",
+            null,
+        )
+        pendingFileAccessResult = null
         sessions.values.forEach(ShellSession::close)
         sessions.clear()
         executor.shutdownNow()
@@ -575,5 +637,6 @@ class MainActivity : FlutterActivity(), MethodChannel.MethodCallHandler,
         private const val EVENT_CHANNEL = "adb_helper/android/events"
         private const val SHIZUKU_REQUEST_CODE = 2307
         private const val DOCUMENT_REQUEST_CODE = 2308
+        private const val FILE_ACCESS_REQUEST_CODE = 2309
     }
 }

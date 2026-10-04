@@ -45,6 +45,50 @@ class DesktopDeviceGateway implements DeviceGateway {
   }
 
   @override
+  Future<List<DeviceRef>> scanLocalNetwork() async {
+    final devices = <String, DeviceRef>{
+      for (final device in await discover())
+        if (device.transport == Transport.wireless) device.id: device,
+    };
+    final result = await _runAdbResult(['mdns', 'services']);
+    if (result.exitCode != 0) throw _commandFailure(result);
+    for (final line in const LineSplitter().convert(result.stdout.toString())) {
+      final fields = line.trim().split(RegExp(r'\s+'));
+      if (fields.length < 3 || fields.first != 'adb-tls-connect') continue;
+      final endpoint = _parseEndpoint(fields.last);
+      if (endpoint == null) continue;
+      final serviceSuffix = '._adb-tls-connect._tcp.';
+      final label = fields[1].endsWith(serviceSuffix)
+          ? fields[1].substring(0, fields[1].length - serviceSuffix.length)
+          : fields[1];
+      final device = DeviceRef(
+        id: _endpoint(endpoint.host, endpoint.port),
+        label: label.isEmpty ? endpoint.host : label,
+        transport: Transport.wireless,
+      );
+      devices[device.id] = device;
+    }
+    return devices.values.toList(growable: false);
+  }
+
+  ({String host, int port})? _parseEndpoint(String value) {
+    final separator = value.lastIndexOf(':');
+    if (separator <= 0) return null;
+    var host = value.substring(0, separator);
+    if (host.startsWith('[') && host.endsWith(']')) {
+      host = host.substring(1, host.length - 1);
+    }
+    final port = int.tryParse(value.substring(separator + 1));
+    if (InternetAddress.tryParse(host) == null ||
+        port == null ||
+        port < 1 ||
+        port > 65535) {
+      return null;
+    }
+    return (host: host, port: port);
+  }
+
+  @override
   Future<Map<String, String>> deviceInformation(SessionSpec spec) async {
     final output = await _runShell(spec, 'getprop');
     final information = <String, String>{};

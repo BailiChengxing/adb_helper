@@ -1,10 +1,10 @@
 import 'package:adb_helper/core/gateway/device_gateway.dart';
 import 'package:adb_helper/core/gateway/device_providers.dart';
-import 'package:adb_helper/core/gateway/fake_device_gateway.dart';
 import 'package:adb_helper/core/model/device.dart';
 import 'package:adb_helper/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 
 class FilesScreen extends ConsumerStatefulWidget {
   const FilesScreen({this.device, super.key});
@@ -60,16 +60,14 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
     List<DeviceRef> allDevices,
   ) {
     final l10n = AppLocalizations.of(context);
-    final isFake = ref.watch(deviceGatewayProvider) is FakeDeviceGateway;
-    final devices = isFake
-        ? allDevices
-        : allDevices
-              .where(
-                (device) =>
-                    device.transport == Transport.wireless ||
-                    device.transport == Transport.otg,
-              )
-              .toList(growable: false);
+    final devices = allDevices
+        .where(
+          (device) =>
+              device.transport == Transport.local ||
+              device.transport == Transport.wireless ||
+              device.transport == Transport.otg,
+        )
+        .toList(growable: false);
     final current = widget.device ?? ref.watch(selectedFileDeviceProvider);
     final selected =
         devices.where((device) => device.id == current?.id).firstOrNull ??
@@ -232,8 +230,13 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
                 return const Center(child: CircularProgressIndicator());
               }
               if (snapshot.hasError) {
+                final error = snapshot.error;
                 return _FileError(
-                  message: '${snapshot.error}',
+                  message:
+                      error is PlatformException &&
+                          error.code == 'FILE_ACCESS_DENIED'
+                      ? l10n.fileAccessPermissionRequired
+                      : '$error',
                   retryLabel: l10n.retry,
                   onRetry: _refresh,
                 );

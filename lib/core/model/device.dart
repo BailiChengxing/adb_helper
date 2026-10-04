@@ -23,6 +23,7 @@ class InstalledApp {
     this.label,
     this.versionName,
     this.versionCode,
+    this.iconBytes,
     this.systemApp = false,
     this.enabled = true,
   });
@@ -31,6 +32,7 @@ class InstalledApp {
   final String? label;
   final String? versionName;
   final int? versionCode;
+  final Uint8List? iconBytes;
   final bool systemApp;
   final bool enabled;
 }
@@ -77,6 +79,7 @@ class PairingResult {
 
 abstract interface class DeviceGateway {
   Future<List<DeviceRef>> discover();
+  Future<List<DeviceRef>> scanLocalNetwork();
   Future<Map<String, String>> deviceInformation(SessionSpec spec);
   Future<PairingResult> pair(PairSpec spec);
   Future<DeviceRef> connectWireless(String host, int port);

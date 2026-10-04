@@ -618,7 +618,7 @@ abstract class AppLocalizations {
   /// No description provided for @searchApplications.
   ///
   /// In en, this message translates to:
-  /// **'Search packages'**
+  /// **'Search app name or package'**
   String get searchApplications;
 
   /// No description provided for @showSystemApps.
@@ -750,7 +750,7 @@ abstract class AppLocalizations {
   /// No description provided for @fileDeviceHelp.
   ///
   /// In en, this message translates to:
-  /// **'Connect a device over wireless ADB or USB OTG first.'**
+  /// **'Browse local files or connect a device over wireless ADB or USB OTG.'**
   String get fileDeviceHelp;
 
   /// No description provided for @targetDevice.
@@ -800,6 +800,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Scan local network'**
   String get scanLocalNetwork;
+
+  /// No description provided for @wirelessScanResult.
+  ///
+  /// In en, this message translates to:
+  /// **'Found {count} wireless ADB device(s)'**
+  String wirelessScanResult(int count);
+
+  /// No description provided for @noWirelessDevicesFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No reachable wireless ADB devices found. Ensure the device is on the same network and Wireless debugging or TCP/IP port 5555 is enabled.'**
+  String get noWirelessDevicesFound;
+
+  /// No description provided for @fileAccessPermissionRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow ADB Helper to manage all files to browse internal storage, then retry.'**
+  String get fileAccessPermissionRequired;
 
   /// No description provided for @connectByIp.
   ///

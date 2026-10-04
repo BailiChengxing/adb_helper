@@ -92,6 +92,10 @@ class FakeDeviceGateway implements DeviceGateway {
   }
 
   @override
+  Future<List<DeviceRef>> scanLocalNetwork() async =>
+      _devices.where((device) => device.transport == Transport.wireless).toList();
+
+  @override
   Future<Map<String, String>> deviceInformation(SessionSpec spec) async =>
       const {
         'Model': 'Demo device',
@@ -156,10 +160,19 @@ class FakeDeviceGateway implements DeviceGateway {
 
   @override
   Future<List<InstalledApp>> listApplications(SessionSpec spec) async => const [
-    InstalledApp(packageName: 'com.example.notes', versionName: '1.0'),
-    InstalledApp(packageName: 'com.example.camera', versionName: '2.4'),
+    InstalledApp(
+      packageName: 'com.example.notes',
+      label: 'Notes',
+      versionName: '1.0',
+    ),
+    InstalledApp(
+      packageName: 'com.example.camera',
+      label: 'Camera',
+      versionName: '2.4',
+    ),
     InstalledApp(
       packageName: 'com.android.settings',
+      label: 'Settings',
       versionName: '15',
       systemApp: true,
     ),
@@ -167,8 +180,16 @@ class FakeDeviceGateway implements DeviceGateway {
 
   @override
   Future<List<InstalledApp>> listHostApplications() async => const [
-    InstalledApp(packageName: 'com.example.notes', versionName: '1.0'),
-    InstalledApp(packageName: 'com.example.camera', versionName: '2.4'),
+    InstalledApp(
+      packageName: 'com.example.notes',
+      label: 'Notes',
+      versionName: '1.0',
+    ),
+    InstalledApp(
+      packageName: 'com.example.camera',
+      label: 'Camera',
+      versionName: '2.4',
+    ),
   ];
 
   @override

@@ -4,14 +4,14 @@
 
 ## 当前能力
 
-- 设备工作台：设备发现/刷新、局域网 mDNS 扫描、无线配对，首页顶部可输入 IP+端口直连；每台设备的子菜单提供终端、文件、应用、设备信息和 scrcpy 镜像入口。
+- 设备工作台：设备发现/刷新、局域网 mDNS 与传统 ADB TCP/IP 5555 端口扫描、无线配对，首页顶部可输入 IP+端口直连；每台设备的子菜单提供终端、文件、应用、设备信息和 scrcpy 镜像入口。
 - Android 无线配对码流程及 mDNS 连接端点发现；USB OTG ADB Host 设备发现、系统 USB 调试授权及 shell 会话。
 - 设置页可选择本地、Shizuku 或 Root 身份运行终端命令，并查看/请求 Shizuku 权限、检查 Root 能力。
 - Android local/Shizuku/root 命令会话和 wireless/OTG ADB shell 的 stdout/stderr 流式输出。
-- ADB 设备上的应用列表、APK 安装、卸载、启动、强行停止、清除数据、启用/停用及打开应用设置。Android 客户端可读取本机应用并将 APK（含分包 APK）安装到已连接设备。
+- ADB 设备上的应用列表、APK 安装、卸载、启动、强行停止、清除数据、启用/停用及打开应用设置。Android 客户端可读取本机应用名称、图标和版本，并将 APK（含分包 APK）安装到已连接设备。
 - 应用安装菜单提供 APK、AAB 和本机应用三个来源。桌面 AAB 安装需要 Java 与 `bundletool.jar`，放在所选 platform-tools 目录旁；Android 客户端目前须先将 AAB 转换成 APK。
 - 多会话终端、流式 stdout/stderr/exit 事件接口、命令输入、输出清理及危险命令确认。
-- 无线/OTG ADB 文件管理：目录浏览、建目录、重命名、删除、系统文件选择器上传/下载及 ADB sync 文件传输。
+- Android 本机、无线 ADB 和 OTG 文件管理：目录浏览、建目录、重命名、删除、系统文件选择器上传/下载及 ADB sync 文件传输。本机浏览内部存储需要授予 Android「管理所有文件」访问权限。
 - 文件浏览可在系统根目录和内部存储之间切换；导航栏仅保留「设备」「设置」「关于」。
 - 关于页面介绍工具目标和设备、终端、文件、应用管理能力。
 - 桌面 ADB backend 启动/复用本地 ADB server，支持设备发现、无线配对/连接、ADB shell 流式会话、单次命令、设备信息和应用操作。
@@ -56,7 +56,7 @@ flutter test
 
 ## 后端状态与限制
 
-Android 设备、终端、应用和文件页面使用原生 MethodChannel/EventChannel 后端；应用管理和文件同步目前要求无线 ADB 或 USB OTG 设备。Android 侧 AAB 不能直接通过 Package Manager 安装，需先转换成 APK。局域网扫描使用 Android mDNS 发现无线 ADB 服务；手动 IP+端口连接适用于已与本应用配对的无线调试设备。Windows/macOS/Linux 会优先查找应用旁的 `platform-tools` 目录或设置中填写的 platform-tools 路径，再回退到系统 PATH 中的 `adb`。项目未将 Google platform-tools 二进制提交到源码；发行包需在对应平台随包提供该目录。Windows USB 连接需安装对应设备驱动。fastboot、sideload 和 scrcpy 镜像尚未实现（设备子菜单保留镜像入口）。首次连接无线调试设备仍需提供配对屏幕上的 IP、配对端口和 6 位配对码。
+Android 设备、终端、应用和文件页面使用原生 MethodChannel/EventChannel 后端；应用列表支持本机 PackageManager 及无线 ADB/USB OTG，文件管理支持本机文件系统及无线 ADB/USB OTG。本机访问内部存储时需授予「管理所有文件」权限；Android 侧 AAB 不能直接通过 Package Manager 安装，需先转换成 APK。Android 局域网扫描发现无线调试 mDNS 服务，并扫描同网段可达的传统 ADB TCP/IP 5555 端口；桌面端通过本机 ADB server 的 `adb mdns services` 查询无线调试服务。Android 11+ 无线调试设备通常使用动态端口，需配对并通过 mDNS 发现；目前桌面端未做传统 5555 子网端口扫描。Windows/macOS/Linux 会优先查找应用旁的 `platform-tools` 目录或设置中填写的 platform-tools 路径，再回退到系统 PATH 中的 `adb`。项目未将 Google platform-tools 二进制提交到源码；发行包需在对应平台随包提供该目录。Windows USB 连接需安装对应设备驱动。fastboot、sideload 和 scrcpy 镜像尚未实现（设备子菜单保留镜像入口）。首次连接无线调试设备仍需提供配对屏幕上的 IP、配对端口和 6 位配对码。
 
 Android 协议测试及全量构建：
 

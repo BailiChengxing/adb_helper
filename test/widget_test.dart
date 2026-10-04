@@ -88,7 +88,8 @@ void main() {
     await tester.tap(find.text('Applications').first);
     await tester.pumpAndSettle();
 
-    expect(find.text('com.example.notes'), findsOneWidget);
+    expect(find.textContaining('com.example.notes'), findsOneWidget);
+    expect(find.text('Notes'), findsOneWidget);
     await tester.tap(find.text('Install APK'));
     await tester.pumpAndSettle();
     expect(find.text('Install AAB'), findsOneWidget);
@@ -96,6 +97,23 @@ void main() {
     await tester.tap(find.text('Install AAB'));
     await tester.pumpAndSettle();
     expect(find.text('Install AAB'), findsNothing);
+  });
+
+  testWidgets('runs a local-network scan and reports its results', (
+    tester,
+  ) async {
+    final gateway = _ScanningGateway();
+    SharedPreferences.setMockInitialValues({'language': 3});
+    await tester.pumpWidget(AdbHelperApp(gateway: gateway));
+    await tester.pumpAndSettle();
+    router.go('/devices');
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Scan local network'));
+    await tester.pumpAndSettle();
+
+    expect(gateway.scanCount, 1);
+    expect(find.text('Found 1 wireless ADB device(s)'), findsOneWidget);
   });
 
   testWidgets('disables Root and Shizuku choices on desktop', (tester) async {
@@ -212,5 +230,15 @@ class _CountingGateway extends FakeDeviceGateway {
   Future<List<DeviceRef>> discover() {
     discoverCount++;
     return super.discover();
+  }
+}
+
+class _ScanningGateway extends FakeDeviceGateway {
+  int scanCount = 0;
+
+  @override
+  Future<List<DeviceRef>> scanLocalNetwork() async {
+    scanCount++;
+    return super.scanLocalNetwork();
   }
 }

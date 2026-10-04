@@ -35,6 +35,23 @@ class AndroidDeviceGateway implements DeviceGateway {
   }
 
   @override
+  Future<List<DeviceRef>> scanLocalNetwork() async {
+    final devices = await _commands.invokeListMethod<Object?>(
+      'scanLocalNetwork',
+    );
+    return (devices ?? const [])
+        .map((value) {
+          final device = Map<Object?, Object?>.from(value! as Map);
+          return DeviceRef(
+            id: device['id']! as String,
+            label: device['label']! as String,
+            transport: Transport.values.byName(device['transport']! as String),
+          );
+        })
+        .toList(growable: false);
+  }
+
+  @override
   Future<Map<String, String>> deviceInformation(SessionSpec spec) async {
     final result = await _commands.invokeMapMethod<String, String>(
       'deviceInformation',
@@ -126,6 +143,7 @@ class AndroidDeviceGateway implements DeviceGateway {
             label: app['label'] as String?,
             versionName: app['versionName'] as String?,
             versionCode: app['versionCode'] as int?,
+            iconBytes: app['icon'] as Uint8List?,
             systemApp: app['systemApp'] as bool? ?? false,
             enabled: app['enabled'] as bool? ?? true,
           );
@@ -143,8 +161,10 @@ class AndroidDeviceGateway implements DeviceGateway {
           final app = Map<Object?, Object?>.from(value! as Map);
           return InstalledApp(
             packageName: app['packageName']! as String,
+            label: app['label'] as String?,
             versionName: app['versionName'] as String?,
             versionCode: app['versionCode'] as int?,
+            iconBytes: app['icon'] as Uint8List?,
             systemApp: app['systemApp'] as bool? ?? false,
           );
         })

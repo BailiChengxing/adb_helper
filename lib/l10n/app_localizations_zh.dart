@@ -275,7 +275,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get installApk => '安装 APK';
 
   @override
-  String get searchApplications => '搜索应用包名';
+  String get searchApplications => '搜索应用名称或包名';
 
   @override
   String get showSystemApps => '显示系统应用';
@@ -345,7 +345,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get noFileDevice => '没有可用于文件操作的 ADB 设备。';
 
   @override
-  String get fileDeviceHelp => '请先通过无线 ADB 或 USB OTG 连接设备。';
+  String get fileDeviceHelp => '可浏览本机文件，或通过无线 ADB、USB OTG 浏览已连接设备。';
 
   @override
   String get targetDevice => '目标设备';
@@ -370,6 +370,19 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get scanLocalNetwork => '扫描本地网络';
+
+  @override
+  String wirelessScanResult(int count) {
+    return '扫描发现 $count 个无线 ADB 设备';
+  }
+
+  @override
+  String get noWirelessDevicesFound =>
+      '未发现可连接的无线 ADB 设备。请确认设备与本机处于同一网络，并已启用无线调试或 TCP/IP 端口 5555。';
+
+  @override
+  String get fileAccessPermissionRequired =>
+      '需要允许 ADB Helper 管理所有文件，才能浏览内部存储。授权后请重试。';
 
   @override
   String get connectByIp => '通过 IP 和端口直连';
@@ -743,7 +756,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get installApk => '安裝 APK';
 
   @override
-  String get searchApplications => '搜尋應用程式套件名稱';
+  String get searchApplications => '搜尋應用程式名稱或套件名稱';
 
   @override
   String get showSystemApps => '顯示系統應用程式';
@@ -813,7 +826,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get noFileDevice => '沒有可用於檔案操作的 ADB 裝置。';
 
   @override
-  String get fileDeviceHelp => '請先透過無線 ADB 或 USB OTG 連接裝置。';
+  String get fileDeviceHelp => '可瀏覽本機檔案，或透過無線 ADB、USB OTG 瀏覽已連線裝置。';
 
   @override
   String get targetDevice => '目標裝置';
@@ -838,6 +851,19 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get scanLocalNetwork => '掃描本機網路';
+
+  @override
+  String wirelessScanResult(int count) {
+    return '掃描找到 $count 個無線 ADB 裝置';
+  }
+
+  @override
+  String get noWirelessDevicesFound =>
+      '找不到可連線的無線 ADB 裝置。請確認裝置與本機位於同一網路，並已啟用無線偵錯或 TCP/IP 連接埠 5555。';
+
+  @override
+  String get fileAccessPermissionRequired =>
+      '需要允許 ADB Helper 管理所有檔案，才能瀏覽內部儲存空間。授權後請重試。';
 
   @override
   String get connectByIp => '透過 IP 和連接埠直連';
