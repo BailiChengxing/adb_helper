@@ -15,6 +15,7 @@
 - 文件浏览可在系统根目录和内部存储之间切换；导航栏仅保留「设备」「设置」「关于」。
 - 关于页面介绍工具目标和设备、终端、文件、应用管理能力。
 - 桌面 ADB backend 启动/复用本地 ADB server，支持设备发现、无线配对/连接、ADB shell 流式会话、单次命令、设备信息和应用操作。
+- 桌面端提供 Fastboot 设备发现、镜像刷写、重启和 ADB sideload 操作；使用随包 platform-tools。
 - 设置项：系统/浅色/深色/AMOLED 主题、界面语言、终端字号、危险操作确认和 platform-tools 路径；使用 SharedPreferences 保存。
 - 小屏底部导航、中屏 NavigationRail、大屏展开式 NavigationRail；导航项为设备、设置、关于，设备内功能页面由每台设备的操作菜单打开。
 
@@ -56,7 +57,7 @@ flutter test
 
 ## 后端状态与限制
 
-Android 设备、终端、应用和文件页面使用原生 MethodChannel/EventChannel 后端；应用列表支持本机 PackageManager 及无线 ADB/USB OTG，文件管理支持本机文件系统及无线 ADB/USB OTG。本机访问内部存储时需授予「管理所有文件」权限；Android 侧 AAB 不能直接通过 Package Manager 安装，需先转换成 APK。Android 局域网扫描发现无线调试 mDNS 服务，并扫描同网段可达的传统 ADB TCP/IP 5555 端口；桌面端通过本机 ADB server 的 `adb mdns services` 查询无线调试服务。Android 11+ 无线调试设备通常使用动态端口，需配对并通过 mDNS 发现；目前桌面端未做传统 5555 子网端口扫描。Windows/macOS/Linux 会优先查找应用旁的 `platform-tools` 目录或设置中填写的 platform-tools 路径，再回退到系统 PATH 中的 `adb`。项目未将 Google platform-tools 二进制提交到源码；发行包需在对应平台随包提供该目录。Windows USB 连接需安装对应设备驱动。fastboot、sideload 和 scrcpy 镜像尚未实现（设备子菜单保留镜像入口）。首次连接无线调试设备仍需提供配对屏幕上的 IP、配对端口和 6 位配对码。
+Android 设备、终端、应用和文件页面使用原生 MethodChannel/EventChannel 后端；应用列表支持本机 PackageManager 及无线 ADB/USB OTG，文件管理支持本机文件系统及无线 ADB/USB OTG。本机访问内部存储时需授予「管理所有文件」权限；Android 侧 AAB 不能直接通过 Package Manager 安装，需先转换成 APK。Android 局域网扫描发现无线调试 mDNS 服务，并扫描同网段可达的传统 ADB TCP/IP 5555 端口；桌面端通过本机 ADB server 的 `adb mdns services` 查询无线调试服务。Android 11+ 无线调试设备通常使用动态端口，需配对并通过 mDNS 发现；目前桌面端未做传统 5555 子网端口扫描。Windows/macOS/Linux 会优先查找应用旁的 `platform-tools` 目录或设置中填写的 platform-tools 路径，再回退到系统 PATH 中的 `adb`。项目未将 Google platform-tools 二进制提交到源码；发行包需在对应平台随包提供该目录。Windows USB 连接需安装对应设备驱动。桌面端已提供 Fastboot 刷写、重启和 ADB sideload 页面；Fastboot/Sideload 使用随包 platform-tools，Android 端暂不提供 fastboot/sideload。scrcpy 镜像尚未实现（设备子菜单保留镜像入口）。首次连接无线调试设备仍需提供配对屏幕上的 IP、配对端口和 6 位配对码。
 
 Android 协议测试及全量构建：
 

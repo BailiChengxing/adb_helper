@@ -217,7 +217,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get demoNotice =>
-      'Desktop Windows, macOS, and Linux use the local ADB server. Android provides native device, shell, app, and file operations. Fastboot, sideload, and scrcpy are not implemented.';
+      'Desktop Windows, macOS, and Linux use the local ADB server and bundled platform-tools. Fastboot flashing, reboot, and ADB sideload are available on desktop builds; Android provides native device, shell, app, and file operations. scrcpy mirroring is not implemented.';
 
   @override
   String get runAnyway => 'Run anyway';
@@ -499,4 +499,46 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get aboutVersion =>
       'Version 1.0.0 · scrcpy mirroring is not implemented yet';
+
+  @override
+  String get fastbootSideload => 'Fastboot / Sideload';
+
+  @override
+  String get fastboot => 'Fastboot';
+
+  @override
+  String get sideload => 'Sideload';
+
+  @override
+  String get fastbootDevices => 'Fastboot devices';
+
+  @override
+  String get noFastbootDevices => 'No fastboot devices found';
+
+  @override
+  String get selectImage => 'Select image';
+
+  @override
+  String get selectZip => 'Select ZIP package';
+
+  @override
+  String get partition => 'Partition';
+
+  @override
+  String get flashImage => 'Flash image';
+
+  @override
+  String get rebootMode => 'Reboot mode';
+
+  @override
+  String get rebootSystem => 'System';
+
+  @override
+  String get rebootBootloader => 'Bootloader';
+
+  @override
+  String get rebootRecovery => 'Recovery';
+
+  @override
+  String get startSideload => 'Start sideload';
 }

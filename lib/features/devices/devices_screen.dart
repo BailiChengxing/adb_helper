@@ -78,6 +78,11 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen>
         title: Text(l10n.devices),
         actions: [
           IconButton(
+            tooltip: l10n.fastbootSideload,
+            onPressed: () => context.push('/devices/fastboot'),
+            icon: const Icon(Icons.flash_on),
+          ),
+          IconButton(
             tooltip: l10n.scanLocalNetwork,
             onPressed: _scanning ? null : _scanLocalNetwork,
             icon: _scanning

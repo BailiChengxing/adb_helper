@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:adb_helper/core/gateway/android_device_gateway.dart';
 import 'package:adb_helper/core/gateway/desktop_device_gateway.dart';
+import 'package:adb_helper/core/gateway/desktop_operations_gateway.dart';
 import 'package:adb_helper/core/gateway/device_gateway.dart';
 import 'package:adb_helper/core/gateway/fake_file_sync.dart';
 import 'package:adb_helper/core/model/device.dart';
@@ -18,4 +21,15 @@ final fileSyncProvider = Provider.family<FileSync, SessionSpec>((ref, spec) {
   if (gateway is AndroidDeviceGateway) return gateway.fileSync(spec);
   if (gateway is DesktopDeviceGateway) return gateway.fileSync(spec);
   return ref.watch(_fakeFileSyncProvider).forSession(spec);
+});
+final fastbootGatewayProvider = Provider<FastbootGateway>((ref) {
+  return Platform.isAndroid
+      ? UnsupportedFastbootGateway()
+      : DesktopFastbootGateway();
+});
+
+final sideloadGatewayProvider = Provider<SideloadGateway>((ref) {
+  return Platform.isAndroid
+      ? UnsupportedSideloadGateway()
+      : DesktopSideloadGateway();
 });

@@ -8,6 +8,7 @@ import 'package:adb_helper/core/gateway/device_gateway.dart';
 import 'package:adb_helper/core/settings/app_settings.dart';
 import 'package:adb_helper/features/devices/devices_screen.dart';
 import 'package:adb_helper/features/devices/device_info_screen.dart';
+import 'package:adb_helper/features/devices/fastboot_sideload_screen.dart';
 import 'package:adb_helper/features/apps/apps_screen.dart';
 import 'package:adb_helper/features/about/about_screen.dart';
 import 'package:adb_helper/features/files/files_screen.dart';
@@ -54,6 +55,11 @@ final router = GoRouter(
                   path: 'info',
                   builder: (context, state) =>
                       DeviceInfoScreen(device: _deviceFromRoute(state)),
+                ),
+                GoRoute(
+                  path: 'fastboot',
+                  builder: (context, state) =>
+                      const FastbootSideloadScreen(),
                 ),
               ],
             ),

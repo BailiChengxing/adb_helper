@@ -178,12 +178,21 @@ abstract interface class FileSync {
 
 abstract interface class FastbootGateway {
   Future<List<String>> devices();
-  Future<void> flash(String partition, String image, ProgressSink p);
-  Future<void> reboot(String mode);
+  Future<void> flash(
+    String partition,
+    String image,
+    ProgressSink p, {
+    String? serial,
+  });
+  Future<void> reboot(String mode, {String? serial});
 }
 
 abstract interface class SideloadGateway {
-  Future<void> sideload(String file, ProgressSink p);
+  Future<void> sideload(
+    String file,
+    ProgressSink p, {
+    String? serial,
+  });
 }
 
 class SessionState {

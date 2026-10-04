@@ -504,7 +504,7 @@ abstract class AppLocalizations {
   /// No description provided for @demoNotice.
   ///
   /// In en, this message translates to:
-  /// **'Desktop Windows, macOS, and Linux use the local ADB server. Android provides native device, shell, app, and file operations. Fastboot, sideload, and scrcpy are not implemented.'**
+  /// **'Desktop Windows, macOS, and Linux use the local ADB server and bundled platform-tools. Fastboot flashing, reboot, and ADB sideload are available on desktop builds; Android provides native device, shell, app, and file operations. scrcpy mirroring is not implemented.'**
   String get demoNotice;
 
   /// No description provided for @runAnyway.
@@ -1010,6 +1010,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Version 1.0.0 · scrcpy mirroring is not implemented yet'**
   String get aboutVersion;
+
+  /// No description provided for @fastbootSideload.
+  ///
+  /// In en, this message translates to:
+  /// **'Fastboot / Sideload'**
+  String get fastbootSideload;
+
+  /// No description provided for @fastboot.
+  ///
+  /// In en, this message translates to:
+  /// **'Fastboot'**
+  String get fastboot;
+
+  /// No description provided for @sideload.
+  ///
+  /// In en, this message translates to:
+  /// **'Sideload'**
+  String get sideload;
+
+  /// No description provided for @fastbootDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'Fastboot devices'**
+  String get fastbootDevices;
+
+  /// No description provided for @noFastbootDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'No fastboot devices found'**
+  String get noFastbootDevices;
+
+  /// No description provided for @selectImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Select image'**
+  String get selectImage;
+
+  /// No description provided for @selectZip.
+  ///
+  /// In en, this message translates to:
+  /// **'Select ZIP package'**
+  String get selectZip;
+
+  /// No description provided for @partition.
+  ///
+  /// In en, this message translates to:
+  /// **'Partition'**
+  String get partition;
+
+  /// No description provided for @flashImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Flash image'**
+  String get flashImage;
+
+  /// No description provided for @rebootMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Reboot mode'**
+  String get rebootMode;
+
+  /// No description provided for @rebootSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get rebootSystem;
+
+  /// No description provided for @rebootBootloader.
+  ///
+  /// In en, this message translates to:
+  /// **'Bootloader'**
+  String get rebootBootloader;
+
+  /// No description provided for @rebootRecovery.
+  ///
+  /// In en, this message translates to:
+  /// **'Recovery'**
+  String get rebootRecovery;
+
+  /// No description provided for @startSideload.
+  ///
+  /// In en, this message translates to:
+  /// **'Start sideload'**
+  String get startSideload;
 }
 
 class _AppLocalizationsDelegate

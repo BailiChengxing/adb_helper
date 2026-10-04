@@ -214,7 +214,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get demoNotice =>
-      'Windows、macOS 和 Linux 桌面端使用本机 ADB server。Android 已接入原生设备、Shell、应用和文件操作；fastboot、sideload 和 scrcpy 尚未开发。';
+      'Windows、macOS 和 Linux 桌面端使用本机 ADB server 和随包 platform-tools。桌面版支持 Fastboot 刷写、重启和 ADB sideload；Android 已接入原生设备、Shell、应用和文件操作。scrcpy 镜像尚未开发。';
 
   @override
   String get runAnyway => '仍然执行';
@@ -484,6 +484,48 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aboutVersion => '版本 1.0.0 · scrcpy 镜像功能暂未开发';
+
+  @override
+  String get fastbootSideload => 'Fastboot / Sideload';
+
+  @override
+  String get fastboot => 'Fastboot';
+
+  @override
+  String get sideload => 'Sideload';
+
+  @override
+  String get fastbootDevices => 'Fastboot 设备';
+
+  @override
+  String get noFastbootDevices => '未发现 Fastboot 设备';
+
+  @override
+  String get selectImage => '选择镜像文件';
+
+  @override
+  String get selectZip => '选择 ZIP 包';
+
+  @override
+  String get partition => '分区';
+
+  @override
+  String get flashImage => '刷入镜像';
+
+  @override
+  String get rebootMode => '重启模式';
+
+  @override
+  String get rebootSystem => '系统';
+
+  @override
+  String get rebootBootloader => 'Bootloader';
+
+  @override
+  String get rebootRecovery => 'Recovery';
+
+  @override
+  String get startSideload => '开始 Sideload';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -695,7 +737,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get demoNotice =>
-      'Windows、macOS 和 Linux 桌面版使用本機 ADB server。Android 已接入原生裝置、Shell、應用程式和檔案操作；fastboot、sideload 和 scrcpy 尚未開發。';
+      'Windows、macOS 和 Linux 桌面版使用本機 ADB server 和隨附 platform-tools。桌面版支援 Fastboot 燒錄、重啟和 ADB sideload；Android 已接入原生裝置、Shell、應用程式和檔案操作。scrcpy 鏡像尚未開發。';
 
   @override
   String get runAnyway => '仍要執行';
@@ -967,4 +1009,46 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get aboutVersion => '版本 1.0.0 · scrcpy 鏡像功能尚未開發';
+
+  @override
+  String get fastbootSideload => 'Fastboot / Sideload';
+
+  @override
+  String get fastboot => 'Fastboot';
+
+  @override
+  String get sideload => 'Sideload';
+
+  @override
+  String get fastbootDevices => 'Fastboot 裝置';
+
+  @override
+  String get noFastbootDevices => '未發現 Fastboot 裝置';
+
+  @override
+  String get selectImage => '選擇映像檔';
+
+  @override
+  String get selectZip => '選擇 ZIP 套件';
+
+  @override
+  String get partition => '分割區';
+
+  @override
+  String get flashImage => '燒錄映像';
+
+  @override
+  String get rebootMode => '重啟模式';
+
+  @override
+  String get rebootSystem => '系統';
+
+  @override
+  String get rebootBootloader => 'Bootloader';
+
+  @override
+  String get rebootRecovery => 'Recovery';
+
+  @override
+  String get startSideload => '開始 Sideload';
 }
