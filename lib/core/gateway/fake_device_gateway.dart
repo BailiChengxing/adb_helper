@@ -197,6 +197,7 @@ class FakeDeviceGateway implements DeviceGateway {
     bool apkOnly = false,
     bool aabOnly = false,
     String? saveAs,
+    List<String>? allowedExtensions,
   }) async =>
       'demo://$saveAs';
 

@@ -203,7 +203,7 @@ class _TerminalScreenState extends ConsumerState<TerminalScreen> {
     final accent = Theme.of(context).colorScheme.primary;
     return output
         .splitMapJoin(
-          RegExp(r'^\$ .*$', multiLine: true),
+          RegExp(r'^(?:.*\\\$ ).*$', multiLine: true),
           onMatch: (match) => '\u0000${match.group(0)}\u0000',
           onNonMatch: (text) => text,
         )

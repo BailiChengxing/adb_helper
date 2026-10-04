@@ -1094,6 +1094,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Start sideload'**
   String get startSideload;
+
+  /// No description provided for @tools.
+  ///
+  /// In en, this message translates to:
+  /// **'Tools'**
+  String get tools;
+
+  /// No description provided for @wirelessDebug.
+  ///
+  /// In en, this message translates to:
+  /// **'Wireless ADB debugging'**
+  String get wirelessDebug;
+
+  /// No description provided for @wirelessEnable.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable wireless debugging'**
+  String get wirelessEnable;
+
+  /// No description provided for @wirelessDisable.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable wireless debugging'**
+  String get wirelessDisable;
+
+  /// No description provided for @wirelessEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Wireless debugging is enabled'**
+  String get wirelessEnabled;
+
+  /// No description provided for @wirelessDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Wireless debugging is disabled'**
+  String get wirelessDisabled;
+
+  /// No description provided for @screenTools.
+  ///
+  /// In en, this message translates to:
+  /// **'Screen tools'**
+  String get screenTools;
+
+  /// No description provided for @screenshot.
+  ///
+  /// In en, this message translates to:
+  /// **'Screenshot'**
+  String get screenshot;
+
+  /// No description provided for @screenOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Screen off without locking'**
+  String get screenOff;
+
+  /// No description provided for @screenOffHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn the screen off. Whether the device locks depends on the device security settings.'**
+  String get screenOffHelp;
+
+  /// No description provided for @advancedReboot.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced reboot'**
+  String get advancedReboot;
+
+  /// No description provided for @displayTools.
+  ///
+  /// In en, this message translates to:
+  /// **'Display tools'**
+  String get displayTools;
+
+  /// No description provided for @dpi.
+  ///
+  /// In en, this message translates to:
+  /// **'DPI'**
+  String get dpi;
+
+  /// No description provided for @setDpi.
+  ///
+  /// In en, this message translates to:
+  /// **'Set DPI'**
+  String get setDpi;
+
+  /// No description provided for @width.
+  ///
+  /// In en, this message translates to:
+  /// **'Width'**
+  String get width;
+
+  /// No description provided for @height.
+  ///
+  /// In en, this message translates to:
+  /// **'Height'**
+  String get height;
+
+  /// No description provided for @setResolution.
+  ///
+  /// In en, this message translates to:
+  /// **'Set resolution'**
+  String get setResolution;
+
+  /// No description provided for @invalidNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid number.'**
+  String get invalidNumber;
+
+  /// No description provided for @installXapk.
+  ///
+  /// In en, this message translates to:
+  /// **'Install XAPK'**
+  String get installXapk;
+
+  /// No description provided for @installApks.
+  ///
+  /// In en, this message translates to:
+  /// **'Install APKS'**
+  String get installApks;
 }
 
 class _AppLocalizationsDelegate

@@ -191,6 +191,159 @@ class DesktopSideloadGateway implements SideloadGateway {
   }
 }
 
+class DesktopDeviceToolsGateway implements DeviceToolsGateway {
+  @override
+  Future<void> setWirelessDebugging(SessionSpec spec, bool enabled) =>
+      _runAdb(
+        spec,
+        enabled
+            ? ['tcpip', '5555']
+            : ['usb'],
+      );
+
+  @override
+  Future<void> screenshot(SessionSpec spec, String destination) async {
+    final executable = await _findTool('adb');
+    final result = await Process.run(
+      executable,
+      [
+        if (spec.serial != null && spec.serial!.isNotEmpty) ...[
+          '-s',
+          spec.serial!,
+        ],
+        'exec-out',
+        'screencap -p',
+      ],
+      stdoutEncoding: null,
+      stderrEncoding: utf8,
+    );
+    if (result.exitCode != 0) {
+      throw ProcessException(
+        executable,
+        const ['exec-out', 'screencap -p'],
+        '${result.stderr}',
+        result.exitCode,
+      );
+    }
+    final bytes = result.stdout;
+    if (bytes is! List<int> || bytes.isEmpty) {
+      throw ProcessException(
+        executable,
+        const ['exec-out', 'screencap -p'],
+        'The device returned an empty screenshot.',
+        1,
+      );
+    }
+    final uri = Uri.tryParse(destination);
+    final localPath = uri?.scheme == 'file' ? uri!.toFilePath() : destination;
+    await File(localPath).writeAsBytes(bytes, flush: true);
+  }
+
+  @override
+  Future<void> advancedReboot(SessionSpec spec, String mode) {
+    const allowed = {'system', 'bootloader', 'recovery'};
+    if (!allowed.contains(mode)) {
+      return Future.error(ArgumentError.value(mode, 'mode'));
+    }
+    return _runAdb(
+      spec,
+      mode == 'system'
+          ? ['reboot']
+          : ['reboot', mode],
+    );
+  }
+
+  @override
+  Future<void> setDpi(SessionSpec spec, int dpi) {
+    if (dpi < 100 || dpi > 1000) {
+      return Future.error(ArgumentError.value(dpi, 'dpi'));
+    }
+    return _runAdb(spec, ['shell', 'wm density $dpi']);
+  }
+
+  @override
+  Future<void> setResolution(SessionSpec spec, int width, int height) {
+    if (width < 1 || height < 1) {
+      return Future.error(ArgumentError('Width and height must be positive.'));
+    }
+    return _runAdb(spec, ['shell', 'wm size ${width}x$height']);
+  }
+
+  @override
+  Future<void> screenOff(SessionSpec spec) =>
+      _runAdb(spec, ['shell', 'input keyevent 26']);
+
+  Future<void> _runAdb(SessionSpec spec, List<String> command) async {
+    final executable = await _findTool('adb');
+    final arguments = <String>[
+      if (spec.serial != null && spec.serial!.isNotEmpty) ...[
+        '-s',
+        spec.serial!,
+      ],
+      ...command,
+    ];
+    final result = await Process.run(
+      executable,
+      arguments,
+      stdoutEncoding: utf8,
+      stderrEncoding: utf8,
+    );
+    if (result.exitCode != 0) {
+      throw ProcessException(
+        executable,
+        arguments,
+        '${result.stdout}${result.stderr}'.trim(),
+        result.exitCode,
+      );
+    }
+  }
+}
+
+class ShellDeviceToolsGateway implements DeviceToolsGateway {
+  ShellDeviceToolsGateway(this._gateway);
+
+  final DeviceGateway _gateway;
+
+  @override
+  Future<void> setWirelessDebugging(SessionSpec spec, bool enabled) =>
+      Future.error(
+        UnsupportedError(
+          'Wireless ADB toggling is available on desktop builds only.',
+        ),
+      );
+
+  @override
+  Future<void> screenshot(SessionSpec spec, String destination) =>
+      Future.error(
+        UnsupportedError(
+          'Screenshots are available on desktop builds only.',
+        ),
+      );
+
+  @override
+  Future<void> advancedReboot(SessionSpec spec, String mode) =>
+      _runShell(spec, 'reboot ${mode == 'system' ? '' : mode}'.trim());
+
+  @override
+  Future<void> setDpi(SessionSpec spec, int dpi) =>
+      _runShell(spec, 'wm density $dpi');
+
+  @override
+  Future<void> setResolution(SessionSpec spec, int width, int height) =>
+      _runShell(spec, 'wm size ${width}x$height');
+
+  @override
+  Future<void> screenOff(SessionSpec spec) =>
+      _runShell(spec, 'input keyevent 26');
+
+  Future<void> _runShell(SessionSpec spec, String command) async {
+    final exitCode = await _gateway.execOnce(spec, command);
+    if (exitCode != 0) {
+      throw ProcessException('shell', [command], 'Command failed.', exitCode);
+    }
+  }
+}
+
 class UnsupportedFastbootGateway implements FastbootGateway {
   @override
   Future<List<String>> devices() async => const [];

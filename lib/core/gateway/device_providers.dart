@@ -33,3 +33,8 @@ final sideloadGatewayProvider = Provider<SideloadGateway>((ref) {
       ? UnsupportedSideloadGateway()
       : DesktopSideloadGateway();
 });
+final deviceToolsGatewayProvider = Provider<DeviceToolsGateway>((ref) {
+  return Platform.isAndroid
+      ? ShellDeviceToolsGateway(ref.watch(deviceGatewayProvider))
+      : DesktopDeviceToolsGateway();
+});

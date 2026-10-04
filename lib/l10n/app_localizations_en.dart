@@ -541,4 +541,65 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get startSideload => 'Start sideload';
+
+  @override
+  String get tools => 'Tools';
+
+  @override
+  String get wirelessDebug => 'Wireless ADB debugging';
+
+  @override
+  String get wirelessEnable => 'Enable wireless debugging';
+
+  @override
+  String get wirelessDisable => 'Disable wireless debugging';
+
+  @override
+  String get wirelessEnabled => 'Wireless debugging is enabled';
+
+  @override
+  String get wirelessDisabled => 'Wireless debugging is disabled';
+
+  @override
+  String get screenTools => 'Screen tools';
+
+  @override
+  String get screenshot => 'Screenshot';
+
+  @override
+  String get screenOff => 'Screen off without locking';
+
+  @override
+  String get screenOffHelp =>
+      'Turn the screen off. Whether the device locks depends on the device security settings.';
+
+  @override
+  String get advancedReboot => 'Advanced reboot';
+
+  @override
+  String get displayTools => 'Display tools';
+
+  @override
+  String get dpi => 'DPI';
+
+  @override
+  String get setDpi => 'Set DPI';
+
+  @override
+  String get width => 'Width';
+
+  @override
+  String get height => 'Height';
+
+  @override
+  String get setResolution => 'Set resolution';
+
+  @override
+  String get invalidNumber => 'Enter a valid number.';
+
+  @override
+  String get installXapk => 'Install XAPK';
+
+  @override
+  String get installApks => 'Install APKS';
 }

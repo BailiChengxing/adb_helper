@@ -659,6 +659,7 @@ class DesktopDeviceGateway implements DeviceGateway {
     bool apkOnly = false,
     bool aabOnly = false,
     String? saveAs,
+    List<String>? allowedExtensions,
   }) async {
     if (saveAs != null) {
       final destination = await FilePicker.saveFile(
@@ -667,11 +668,13 @@ class DesktopDeviceGateway implements DeviceGateway {
       );
       return destination?.toString();
     }
-    final extensions = apkOnly
-        ? ['apk']
-        : aabOnly
-        ? ['aab']
-        : null;
+    final extensions =
+        allowedExtensions ??
+        (apkOnly
+            ? ['apk']
+            : aabOnly
+            ? ['aab']
+            : null);
     final result = await FilePicker.pickFile(
       type: extensions == null ? FileType.any : FileType.custom,
       allowedExtensions: extensions,
@@ -683,11 +686,74 @@ class DesktopDeviceGateway implements DeviceGateway {
   Future<void> installApplication(SessionSpec spec, String documentUri) async {
     final uri = Uri.tryParse(documentUri);
     final path = uri?.scheme == 'file' ? uri!.toFilePath() : documentUri;
-    if (path.toLowerCase().endsWith('.aab')) {
+    final lowerPath = path.toLowerCase();
+    if (lowerPath.endsWith('.aab')) {
       await _installAab(spec, path);
       return;
     }
+    if (lowerPath.endsWith('.xapk') || lowerPath.endsWith('.apks')) {
+      await _installSplitPackage(spec, path);
+      return;
+    }
     await _checkedAdb(_targetArgs(spec, ['install', '-r', path]));
+  }
+
+  Future<void> _installSplitPackage(SessionSpec spec, String archivePath) async {
+    final tempDirectory = await Directory.systemTemp.createTemp(
+      'adb_helper_split_',
+    );
+    try {
+      await _extractArchive(archivePath, tempDirectory.path);
+      final apkFiles = tempDirectory
+          .listSync(recursive: true)
+          .whereType<File>()
+          .where((file) => file.path.toLowerCase().endsWith('.apk'))
+          .map((file) => file.path)
+          .toList(growable: false);
+      if (apkFiles.isEmpty) {
+        throw const FormatException('No APK files were found in the package.');
+      }
+      await _checkedProcess(
+        await _adbExecutable(),
+        _targetArgs(
+          spec,
+          ['install-multiple', '-r', ...apkFiles],
+        ),
+      );
+    } finally {
+      try {
+        await tempDirectory.delete(recursive: true);
+      } catch (_) {}
+    }
+  }
+
+  Future<void> _extractArchive(String archivePath, String destination) async {
+    final attempts = <(String, List<String>)>[
+      ('tar', ['-xf', archivePath, '-C', destination]),
+      ('unzip', ['-q', archivePath, '-d', destination]),
+    ];
+    Object? lastError;
+    for (final (executable, arguments) in attempts) {
+      try {
+        final result = await Process.run(
+          executable,
+          arguments,
+          stdoutEncoding: utf8,
+          stderrEncoding: utf8,
+        );
+        if (result.exitCode == 0) return;
+        lastError = ProcessException(
+          executable,
+          arguments,
+          '${result.stdout}${result.stderr}'.trim(),
+          result.exitCode,
+        );
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    throw lastError ??
+        const FormatException('Unable to extract the selected package.');
   }
 
   Future<void> _installAab(SessionSpec spec, String path) async {

@@ -526,6 +526,66 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get startSideload => '开始 Sideload';
+
+  @override
+  String get tools => '工具';
+
+  @override
+  String get wirelessDebug => '无线 ADB 调试';
+
+  @override
+  String get wirelessEnable => '开启无线调试';
+
+  @override
+  String get wirelessDisable => '关闭无线调试';
+
+  @override
+  String get wirelessEnabled => '无线调试已开启';
+
+  @override
+  String get wirelessDisabled => '无线调试已关闭';
+
+  @override
+  String get screenTools => '屏幕工具';
+
+  @override
+  String get screenshot => '屏幕截图';
+
+  @override
+  String get screenOff => '待机息屏（不主动锁屏）';
+
+  @override
+  String get screenOffHelp => '关闭屏幕；是否锁屏取决于设备的安全设置。';
+
+  @override
+  String get advancedReboot => '高级重启';
+
+  @override
+  String get displayTools => '显示工具';
+
+  @override
+  String get dpi => 'DPI';
+
+  @override
+  String get setDpi => '修改 DPI';
+
+  @override
+  String get width => '宽度';
+
+  @override
+  String get height => '高度';
+
+  @override
+  String get setResolution => '修改分辨率';
+
+  @override
+  String get invalidNumber => '请输入有效数字。';
+
+  @override
+  String get installXapk => '安装 XAPK';
+
+  @override
+  String get installApks => '安装 APKS';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -1051,4 +1111,64 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get startSideload => '開始 Sideload';
+
+  @override
+  String get tools => '工具';
+
+  @override
+  String get wirelessDebug => '無線 ADB 偵錯';
+
+  @override
+  String get wirelessEnable => '開啟無線偵錯';
+
+  @override
+  String get wirelessDisable => '關閉無線偵錯';
+
+  @override
+  String get wirelessEnabled => '無線偵錯已開啟';
+
+  @override
+  String get wirelessDisabled => '無線偵錯已關閉';
+
+  @override
+  String get screenTools => '螢幕工具';
+
+  @override
+  String get screenshot => '螢幕截圖';
+
+  @override
+  String get screenOff => '待機熄螢幕（不主動鎖定）';
+
+  @override
+  String get screenOffHelp => '關閉螢幕；是否鎖定取決於裝置的安全設定。';
+
+  @override
+  String get advancedReboot => '進階重啟';
+
+  @override
+  String get displayTools => '顯示工具';
+
+  @override
+  String get dpi => 'DPI';
+
+  @override
+  String get setDpi => '修改 DPI';
+
+  @override
+  String get width => '寬度';
+
+  @override
+  String get height => '高度';
+
+  @override
+  String get setResolution => '修改解析度';
+
+  @override
+  String get invalidNumber => '請輸入有效數字。';
+
+  @override
+  String get installXapk => '安裝 XAPK';
+
+  @override
+  String get installApks => '安裝 APKS';
 }

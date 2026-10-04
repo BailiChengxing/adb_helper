@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:adb_helper/core/gateway/device_gateway.dart';
+import 'package:adb_helper/core/gateway/fake_device_gateway.dart';
 import 'package:adb_helper/core/model/device.dart';
 import 'package:adb_helper/core/settings/app_settings.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -74,8 +75,22 @@ class TerminalController extends StateNotifier<TerminalState> {
     final sessionId = state.activeSessionId;
     final shell = sessionId == null ? null : _shellSessions[sessionId];
     if (shell == null) return;
-    await shell.write('$command\n');
+
+    if (_gateway is FakeDeviceGateway) {
+      await shell.write('$command\n');
+      return;
+    }
+
+    final quotedCommand = _shellQuote(command);
+    final promptPrefix =
+        r'''printf '%s:%s$ %s\n' "$(id -un 2>/dev/null || echo shell)" "$(pwd 2>/dev/null || echo /)" ''';
+    final wrappedCommand =
+        '$promptPrefix$quotedCommand; eval $quotedCommand';
+    await shell.write('$wrappedCommand\n');
   }
+
+  String _shellQuote(String value) =>
+      "'${value.replaceAll("'", "'\\''")}'";
 
   Future<void> closeSession(String sessionId) async {
     await _subscriptions.remove(sessionId)?.cancel();

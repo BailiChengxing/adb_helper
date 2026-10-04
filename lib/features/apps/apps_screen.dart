@@ -221,6 +221,7 @@ class _AppsScreenState extends ConsumerState<AppsScreen> {
   Future<void> _installDocument({
     bool apkOnly = false,
     bool aabOnly = false,
+    List<String>? allowedExtensions,
   }) async {
     final l10n = AppLocalizations.of(context);
     await _runOperation(() async {
@@ -228,6 +229,7 @@ class _AppsScreenState extends ConsumerState<AppsScreen> {
       final uri = await gateway.pickDocument(
         apkOnly: apkOnly,
         aabOnly: aabOnly,
+        allowedExtensions: allowedExtensions,
       );
       if (uri == null) return;
       await gateway.installApplication(_spec, uri);
@@ -254,6 +256,16 @@ class _AppsScreenState extends ConsumerState<AppsScreen> {
               onTap: () => Navigator.pop(context, 'aab'),
             ),
             ListTile(
+              leading: const Icon(Icons.archive_outlined),
+              title: Text(l10n.installXapk),
+              onTap: () => Navigator.pop(context, 'xapk'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.layers_outlined),
+              title: Text(l10n.installApks),
+              onTap: () => Navigator.pop(context, 'apks'),
+            ),
+            ListTile(
               leading: const Icon(Icons.phone_android),
               title: Text(l10n.installFromThisDevice),
               onTap: () => Navigator.pop(context, 'host'),
@@ -269,6 +281,12 @@ class _AppsScreenState extends ConsumerState<AppsScreen> {
         break;
       case 'aab':
         await _installDocument(aabOnly: true);
+        break;
+      case 'xapk':
+        await _installDocument(allowedExtensions: ['xapk']);
+        break;
+      case 'apks':
+        await _installDocument(allowedExtensions: ['apks']);
         break;
       case 'host':
         await _installHostApplication();

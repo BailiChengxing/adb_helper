@@ -482,6 +482,10 @@ class _DeviceCard extends ConsumerWidget {
               child: _menuEntry(Icons.apps_outlined, l10n.applications),
             ),
             PopupMenuItem(
+              value: 'tools',
+              child: _menuEntry(Icons.build_outlined, l10n.tools),
+            ),
+            PopupMenuItem(
               value: 'mirror',
               child: _menuEntry(Icons.cast, l10n.mirror),
             ),

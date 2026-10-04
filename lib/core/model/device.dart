@@ -92,6 +92,7 @@ abstract interface class DeviceGateway {
     bool apkOnly = false,
     bool aabOnly = false,
     String? saveAs,
+    List<String>? allowedExtensions,
   });
   Future<void> installApplication(SessionSpec spec, String documentUri);
   Future<void> installHostApplication(SessionSpec spec, String packageName);
@@ -193,6 +194,15 @@ abstract interface class SideloadGateway {
     ProgressSink p, {
     String? serial,
   });
+}
+
+abstract interface class DeviceToolsGateway {
+  Future<void> setWirelessDebugging(SessionSpec spec, bool enabled);
+  Future<void> screenshot(SessionSpec spec, String destination);
+  Future<void> advancedReboot(SessionSpec spec, String mode);
+  Future<void> setDpi(SessionSpec spec, int dpi);
+  Future<void> setResolution(SessionSpec spec, int width, int height);
+  Future<void> screenOff(SessionSpec spec);
 }
 
 class SessionState {

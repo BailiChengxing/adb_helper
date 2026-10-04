@@ -176,11 +176,13 @@ class AndroidDeviceGateway implements DeviceGateway {
     bool apkOnly = false,
     bool aabOnly = false,
     String? saveAs,
+    List<String>? allowedExtensions,
   }) =>
       _commands.invokeMethod<String>('pickDocument', {
         'apkOnly': apkOnly,
         'aabOnly': aabOnly,
         'saveAs': saveAs,
+        'allowedExtensions': allowedExtensions,
       });
 
   @override
