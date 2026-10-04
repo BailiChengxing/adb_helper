@@ -243,20 +243,13 @@ class DesktopDeviceGateway implements DeviceGateway {
     }
 
     final enriched = <InstalledApp>[];
-    for (var start = 0; start < applications.length; start += 4) {
-      var end = start + 4;
-      if (end > applications.length) end = applications.length;
-      final batch = applications.sublist(start, end);
-      enriched.addAll(
-        await Future.wait(
-          batch.map(
-            (app) => _enrichApplication(
-              spec,
-              app,
-              paths[app.packageName],
-              aapt,
-            ),
-          ),
+    for (final app in applications) {
+      enriched.add(
+        await _enrichApplication(
+          spec,
+          app,
+          paths[app.packageName],
+          aapt,
         ),
       );
     }

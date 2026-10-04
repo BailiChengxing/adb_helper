@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:adb_helper/core/gateway/desktop_device_gateway.dart';
 import 'package:adb_helper/core/gateway/device_gateway.dart';
 import 'package:adb_helper/core/model/device.dart';
@@ -21,7 +19,6 @@ class _AppsScreenState extends ConsumerState<AppsScreen> {
   late Future<List<InstalledApp>> _applications;
   bool _showSystemApps = true;
   bool _busy = false;
-  int _applicationGeneration = 0;
 
   SessionSpec get _spec =>
       SessionSpec(transport: widget.device.transport, serial: widget.device.id);
@@ -39,21 +36,10 @@ class _AppsScreenState extends ConsumerState<AppsScreen> {
   }
 
   Future<List<InstalledApp>> _loadApplications() async {
-    final generation = ++_applicationGeneration;
     final gateway = ref.read(deviceGatewayProvider);
     final applications = await gateway.listApplications(_spec);
     if (gateway is! DesktopDeviceGateway) return applications;
-
-    unawaited(
-      gateway
-          .enrichApplications(_spec, applications)
-          .then((enriched) {
-            if (!mounted || generation != _applicationGeneration) return;
-            setState(() => _applications = Future.value(enriched));
-          })
-          .catchError((Object _) {}),
-    );
-    return applications;
+    return gateway.enrichApplications(_spec, applications);
   }
 
   void _refresh() {
