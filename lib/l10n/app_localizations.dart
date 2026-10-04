@@ -867,6 +867,18 @@ abstract class AppLocalizations {
   /// **'Internal storage'**
   String get internalStorage;
 
+  /// No description provided for @androidOnlyPermissions.
+  ///
+  /// In en, this message translates to:
+  /// **'Root and Shizuku execution are only available on Android.'**
+  String get androidOnlyPermissions;
+
+  /// No description provided for @shizukuPermissionNotGranted.
+  ///
+  /// In en, this message translates to:
+  /// **'Shizuku permission was not granted. Check that Shizuku is running and approve this app.'**
+  String get shizukuPermissionNotGranted;
+
   /// No description provided for @deviceInformation.
   ///
   /// In en, this message translates to:

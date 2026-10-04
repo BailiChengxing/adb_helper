@@ -70,40 +70,10 @@ class _AppsScreenState extends ConsumerState<AppsScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                PopupMenuButton<String>(
-                  enabled: !_busy,
-                  onSelected: (source) {
-                    switch (source) {
-                      case 'apk':
-                        _installDocument(apkOnly: true);
-                        break;
-                      case 'aab':
-                        _installDocument(aabOnly: true);
-                        break;
-                      case 'host':
-                        _installHostApplication();
-                        break;
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    PopupMenuItem(
-                      value: 'apk',
-                      child: Text(l10n.installApk),
-                    ),
-                    PopupMenuItem(
-                      value: 'aab',
-                      child: Text(l10n.installAab),
-                    ),
-                    PopupMenuItem(
-                      value: 'host',
-                      child: Text(l10n.installFromThisDevice),
-                    ),
-                  ],
-                  child: FilledButton.icon(
-                    onPressed: null,
-                    icon: const Icon(Icons.add),
-                    label: Text(l10n.installApk),
-                  ),
+                FilledButton.icon(
+                  onPressed: _busy ? null : _showInstallOptions,
+                  icon: const Icon(Icons.add),
+                  label: Text(l10n.installApk),
                 ),
               ],
             ),
@@ -238,6 +208,46 @@ class _AppsScreenState extends ConsumerState<AppsScreen> {
       _refresh();
       _notify(l10n.installSuccess);
     });
+  }
+
+  Future<void> _showInstallOptions() async {
+    final l10n = AppLocalizations.of(context);
+    final source = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.android),
+              title: Text(l10n.installApk),
+              onTap: () => Navigator.pop(context, 'apk'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.inventory_2_outlined),
+              title: Text(l10n.installAab),
+              onTap: () => Navigator.pop(context, 'aab'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.phone_android),
+              title: Text(l10n.installFromThisDevice),
+              onTap: () => Navigator.pop(context, 'host'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || source == null) return;
+    switch (source) {
+      case 'apk':
+        await _installDocument(apkOnly: true);
+        break;
+      case 'aab':
+        await _installDocument(aabOnly: true);
+        break;
+      case 'host':
+        await _installHostApplication();
+        break;
+    }
   }
 
   Future<void> _installHostApplication() async {

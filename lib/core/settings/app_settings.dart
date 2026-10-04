@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -68,15 +69,22 @@ class AppSettingsController extends StateNotifier<AppSettings> {
 
   Future<void> _restore() async {
     final preferences = await SharedPreferences.getInstance();
+    final savedTransportIndex =
+        preferences.getInt('shellTransport') ?? Transport.local.index;
+    final savedTransport = Transport.values[savedTransportIndex];
+    final shellTransport = Platform.isAndroid
+        ? savedTransport
+        : Transport.local;
+    if (!Platform.isAndroid && savedTransport != Transport.local) {
+      await preferences.setInt('shellTransport', Transport.local.index);
+    }
     state = AppSettings(
       language: AppLanguage.values[preferences.getInt('language') ?? 0],
       theme: AppTheme.values[preferences.getInt('theme') ?? 0],
       terminalFontSize: preferences.getDouble('terminalFontSize') ?? 13,
       confirmDangerousActions: preferences.getBool('confirmDangerousActions') ?? true,
       platformToolsPath: preferences.getString('platformToolsPath') ?? '',
-      shellTransport: Transport.values[
-        preferences.getInt('shellTransport') ?? Transport.local.index
-      ],
+      shellTransport: shellTransport,
     );
   }
 
@@ -111,6 +119,11 @@ class AppSettingsController extends StateNotifier<AppSettings> {
   }
 
   Future<void> setShellTransport(Transport transport) async {
+    if (!Platform.isAndroid && transport != Transport.local) {
+      throw UnsupportedError(
+        'Root and Shizuku execution are only available on Android.',
+      );
+    }
     state = state.copyWith(shellTransport: transport);
     final preferences = await SharedPreferences.getInstance();
     await preferences.setInt('shellTransport', transport.index);

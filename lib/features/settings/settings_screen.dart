@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:adb_helper/core/gateway/device_gateway.dart';
 import 'package:adb_helper/core/model/device.dart';
 import 'package:adb_helper/core/settings/app_settings.dart';
@@ -50,6 +52,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     final settings = ref.watch(appSettingsProvider);
     final controller = ref.read(appSettingsProvider.notifier);
     final gateway = ref.read(deviceGatewayProvider);
+    final privilegedAvailable = Platform.isAndroid;
     final checkRoot = settings.shellTransport == Transport.root;
     final capabilities = ref.watch(executionCapabilitiesProvider(checkRoot));
 
@@ -133,14 +136,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
             title: Text(l10n.shellExecution),
             subtitle: Text(_executionStatus(settings.shellTransport, l10n)),
             trailing: DropdownButton<Transport>(
-              value: settings.shellTransport,
+              value: privilegedAvailable
+                  ? settings.shellTransport
+                  : Transport.local,
               onChanged: (transport) async {
                 if (transport == null) return;
                 await controller.setShellTransport(transport);
                 if (transport != Transport.shizuku) return;
                 try {
-                  await gateway.requestShizukuPermission();
+                  final granted = await gateway.requestShizukuPermission();
                   ref.invalidate(executionCapabilitiesProvider(checkRoot));
+                  if (!granted && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(l10n.shizukuPermissionNotGranted),
+                      ),
+                    );
+                  }
                 } catch (error) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context)
@@ -155,15 +167,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                 ),
                 DropdownMenuItem(
                   value: Transport.shizuku,
+                  enabled: privilegedAvailable,
                   child: Text(l10n.transportShizuku),
                 ),
                 DropdownMenuItem(
                   value: Transport.root,
+                  enabled: privilegedAvailable,
                   child: Text(l10n.transportRoot),
                 ),
               ],
             ),
           ),
+          if (!privilegedAvailable)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                l10n.androidOnlyPermissions,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
           if (settings.shellTransport == Transport.shizuku)
             ListTile(
               leading: const Icon(Icons.security),
@@ -183,8 +205,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                 tooltip: l10n.requestPermission,
                 onPressed: () async {
                   try {
-                    await gateway.requestShizukuPermission();
+                    final granted = await gateway.requestShizukuPermission();
                     ref.invalidate(executionCapabilitiesProvider(checkRoot));
+                    if (!granted && context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(l10n.shizukuPermissionNotGranted),
+                        ),
+                      );
+                    }
                   } catch (error) {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context)

@@ -16,12 +16,50 @@ class DevicesScreen extends ConsumerStatefulWidget {
   ConsumerState<DevicesScreen> createState() => _DevicesScreenState();
 }
 
-class _DevicesScreenState extends ConsumerState<DevicesScreen> {
+class _DevicesScreenState extends ConsumerState<DevicesScreen>
+    with WidgetsBindingObserver {
   final _hostController = TextEditingController();
   final _portController = TextEditingController();
+  GoRouter? _router;
+  String? _lastLocation;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final router = GoRouter.of(context);
+    if (router == _router) return;
+    _router?.routerDelegate.removeListener(_onRouteChanged);
+    _router = router;
+    _lastLocation = router.state.uri.path;
+    router.routerDelegate.addListener(_onRouteChanged);
+  }
+
+  void _onRouteChanged() {
+    if (!mounted) return;
+    final location = _router!.state.uri.path;
+    if (location == '/devices' && _lastLocation != '/devices') {
+      ref.invalidate(availableDevicesProvider);
+    }
+    _lastLocation = location;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.invalidate(availableDevicesProvider);
+    }
+  }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _router?.routerDelegate.removeListener(_onRouteChanged);
     _hostController.dispose();
     _portController.dispose();
     super.dispose();

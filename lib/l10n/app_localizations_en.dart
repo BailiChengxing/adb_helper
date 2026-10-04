@@ -415,6 +415,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get internalStorage => 'Internal storage';
 
   @override
+  String get androidOnlyPermissions =>
+      'Root and Shizuku execution are only available on Android.';
+
+  @override
+  String get shizukuPermissionNotGranted =>
+      'Shizuku permission was not granted. Check that Shizuku is running and approve this app.';
+
+  @override
   String get deviceInformation => 'Device information';
 
   @override

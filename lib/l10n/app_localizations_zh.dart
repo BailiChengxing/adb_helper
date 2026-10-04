@@ -408,6 +408,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get internalStorage => '内部存储';
 
   @override
+  String get androidOnlyPermissions => 'Root 和 Shizuku 执行方式仅在 Android 上可用。';
+
+  @override
+  String get shizukuPermissionNotGranted =>
+      '未获得 Shizuku 权限。请确认 Shizuku 正在运行并批准本应用的请求。';
+
+  @override
   String get deviceInformation => '设备信息';
 
   @override
@@ -867,6 +874,13 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get internalStorage => '內部儲存空間';
+
+  @override
+  String get androidOnlyPermissions => 'Root 和 Shizuku 執行方式僅適用於 Android。';
+
+  @override
+  String get shizukuPermissionNotGranted =>
+      '未取得 Shizuku 權限。請確認 Shizuku 正在執行並核准本應用程式的請求。';
 
   @override
   String get deviceInformation => '裝置資訊';

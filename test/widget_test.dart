@@ -1,5 +1,6 @@
 import 'package:adb_helper/main.dart';
 import 'package:adb_helper/core/gateway/fake_device_gateway.dart';
+import 'package:adb_helper/core/model/device.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -12,8 +13,9 @@ void main() {
       tester,
     ) async {
       SharedPreferences.setMockInitialValues({'language': languageIndex});
-      router.go('/devices');
       await tester.pumpWidget(AdbHelperApp(gateway: FakeDeviceGateway()));
+      await tester.pumpAndSettle();
+      router.go('/devices');
       await tester.pumpAndSettle();
 
       expect(find.text(expectedLabel), findsAtLeastNWidgets(1));
@@ -25,8 +27,9 @@ void main() {
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({'language': 3});
-    router.go('/devices');
     await tester.pumpWidget(AdbHelperApp(gateway: FakeDeviceGateway()));
+    await tester.pumpAndSettle();
+    router.go('/devices');
     await tester.pumpAndSettle();
 
     await tester.tap(find.byTooltip('Device actions').first);
@@ -40,7 +43,6 @@ void main() {
 
   testWidgets('opens the terminal for the selected device', (tester) async {
     SharedPreferences.setMockInitialValues({'language': 3});
-    router.go('/devices');
     await tester.pumpWidget(AdbHelperApp(gateway: FakeDeviceGateway()));
     await tester.pumpAndSettle();
     router.go('/devices');
@@ -58,7 +60,6 @@ void main() {
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({'language': 3});
-    router.go('/devices');
     await tester.pumpWidget(AdbHelperApp(gateway: FakeDeviceGateway()));
     await tester.pumpAndSettle();
     router.go('/devices');
@@ -77,7 +78,6 @@ void main() {
 
   testWidgets('opens application management for an ADB device', (tester) async {
     SharedPreferences.setMockInitialValues({'language': 3});
-    router.go('/devices');
     await tester.pumpWidget(AdbHelperApp(gateway: FakeDeviceGateway()));
     await tester.pumpAndSettle();
     router.go('/devices');
@@ -89,15 +89,68 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('com.example.notes'), findsOneWidget);
-    await tester.tap(find.text('Install APK').last);
+    await tester.tap(find.text('Install APK'));
     await tester.pumpAndSettle();
     expect(find.text('Install AAB'), findsOneWidget);
     expect(find.text('From this device'), findsOneWidget);
+    await tester.tap(find.text('Install AAB'));
+    await tester.pumpAndSettle();
+    expect(find.text('Install AAB'), findsNothing);
+  });
+
+  testWidgets('disables Root and Shizuku choices on desktop', (tester) async {
+    SharedPreferences.setMockInitialValues({'language': 3});
+    await tester.pumpWidget(AdbHelperApp(gateway: FakeDeviceGateway()));
+    await tester.pumpAndSettle();
+    router.go('/settings');
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Root and Shizuku execution are only available on Android.'),
+      findsOneWidget,
+    );
+    await tester.tap(find.byType(DropdownButton<Transport>));
+    await tester.pumpAndSettle();
+    final choices = tester
+        .widgetList<DropdownMenuItem<Transport>>(
+          find.byType(DropdownMenuItem<Transport>),
+        )
+        .toList();
+    expect(
+      choices.singleWhere((item) => item.value == Transport.shizuku).enabled,
+      isFalse,
+    );
+    expect(
+      choices.singleWhere((item) => item.value == Transport.root).enabled,
+      isFalse,
+    );
+    await tester.tap(find.text('Local shell').last);
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('rediscovers devices when returning from a device tool', (
+    tester,
+  ) async {
+    final gateway = _CountingGateway();
+    SharedPreferences.setMockInitialValues({'language': 3});
+    await tester.pumpWidget(AdbHelperApp(gateway: gateway));
+    await tester.pumpAndSettle();
+    router.go('/devices');
+    await tester.pumpAndSettle();
+    expect(gateway.discoverCount, 1);
+
+    await tester.tap(find.byTooltip('Device actions').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Terminal').last);
+    await tester.pumpAndSettle();
+    router.pop();
+    await tester.pumpAndSettle();
+
+    expect(gateway.discoverCount, greaterThan(1));
   });
 
   testWidgets('opens the device file browser', (tester) async {
     SharedPreferences.setMockInitialValues({'language': 3});
-    router.go('/devices');
     await tester.pumpWidget(AdbHelperApp(gateway: FakeDeviceGateway()));
     await tester.pumpAndSettle();
     router.go('/devices');
@@ -122,7 +175,6 @@ void main() {
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({'language': 3});
-    router.go('/devices');
     await tester.pumpWidget(AdbHelperApp(gateway: FakeDeviceGateway()));
     await tester.pumpAndSettle();
     router.go('/devices');
@@ -140,16 +192,25 @@ void main() {
 
   testWidgets('shows the about page from the main navigation', (tester) async {
     SharedPreferences.setMockInitialValues({'language': 3});
-    router.go('/devices');
     await tester.pumpWidget(AdbHelperApp(gateway: FakeDeviceGateway()));
     await tester.pumpAndSettle();
     router.go('/devices');
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('About').last);
+    await tester.tap(find.byIcon(Icons.info_outline).first);
     await tester.pumpAndSettle();
 
     expect(find.text('ADB Helper'), findsOneWidget);
     expect(find.text('What you can do'), findsOneWidget);
   });
+}
+
+class _CountingGateway extends FakeDeviceGateway {
+  int discoverCount = 0;
+
+  @override
+  Future<List<DeviceRef>> discover() {
+    discoverCount++;
+    return super.discover();
+  }
 }

@@ -40,6 +40,7 @@ android {
 
 dependencies {
     implementation("dev.rikka.shizuku:api:12.2.0")
+    implementation("dev.rikka.shizuku:provider:12.2.0")
     implementation("com.github.topjohnwu.libsu:core:6.0.0")
     implementation("io.github.muntashirakon:libadb-android:3.1.1")
     implementation("org.bouncycastle:bcpkix-jdk15to18:1.81")

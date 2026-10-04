@@ -32,6 +32,17 @@ class MainActivity : FlutterActivity(), MethodChannel.MethodCallHandler,
     private val adbTransport by lazy { AndroidAdbTransport(applicationContext, this) }
     @Volatile private var eventSink: EventChannel.EventSink? = null
     private var pendingDocumentResult: MethodChannel.Result? = null
+    private var pendingShizukuPermissionCallback: ((Boolean) -> Unit)? = null
+    private val shizukuPermissionListener =
+        Shizuku.OnRequestPermissionResultListener { requestCode, grantResult ->
+            if (requestCode == SHIZUKU_REQUEST_CODE) {
+                val callback = pendingShizukuPermissionCallback
+                pendingShizukuPermissionCallback = null
+                mainHandler.post {
+                    callback?.invoke(grantResult == PackageManager.PERMISSION_GRANTED)
+                }
+            }
+        }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -39,6 +50,7 @@ class MainActivity : FlutterActivity(), MethodChannel.MethodCallHandler,
             .setMethodCallHandler(this)
         EventChannel(flutterEngine.dartExecutor.binaryMessenger, EVENT_CHANNEL)
             .setStreamHandler(this)
+        Shizuku.addRequestPermissionResultListener(shizukuPermissionListener)
     }
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
@@ -382,7 +394,17 @@ class MainActivity : FlutterActivity(), MethodChannel.MethodCallHandler,
             return
         }
         if (mode == TransportMode.SHIZUKU && !hasShizukuPermission()) {
-            requestShizukuPermission(result)
+            requestShizukuPermission { granted ->
+                if (granted) {
+                    openSession(call, result)
+                } else {
+                    result.error(
+                        "SHIZUKU_PERMISSION_DENIED",
+                        "Shizuku permission was not granted.",
+                        null,
+                    )
+                }
+            }
             return
         }
         val sessionId = UUID.randomUUID().toString()
@@ -456,7 +478,17 @@ class MainActivity : FlutterActivity(), MethodChannel.MethodCallHandler,
         val mode = TransportMode.fromWire(args["transport"] as? String)
             ?: return result.error("INVALID_TRANSPORT", "Unsupported Android transport.", null)
         if (mode == TransportMode.SHIZUKU && !hasShizukuPermission()) {
-            requestShizukuPermission(result)
+            requestShizukuPermission { granted ->
+                if (granted) {
+                    execOnce(call, result)
+                } else {
+                    result.error(
+                        "SHIZUKU_PERMISSION_DENIED",
+                        "Shizuku permission was not granted.",
+                        null,
+                    )
+                }
+            }
             return
         }
         val command = args["command"] as? String
@@ -478,24 +510,24 @@ class MainActivity : FlutterActivity(), MethodChannel.MethodCallHandler,
     }
 
     private fun requestShizukuPermission(result: MethodChannel.Result) {
+        requestShizukuPermission { granted -> result.success(granted) }
+    }
+
+    private fun requestShizukuPermission(onResult: (Boolean) -> Unit) {
         if (!Shizuku.pingBinder()) {
-            result.error(
-                "SHIZUKU_UNAVAILABLE",
-                "Start the Shizuku service before selecting the Shizuku transport.",
-                null,
-            )
+            mainHandler.post { onResult(false) }
             return
         }
         if (hasShizukuPermission()) {
-            result.success(true)
+            mainHandler.post { onResult(true) }
             return
         }
+        if (pendingShizukuPermissionCallback != null) {
+            mainHandler.post { onResult(false) }
+            return
+        }
+        pendingShizukuPermissionCallback = onResult
         Shizuku.requestPermission(SHIZUKU_REQUEST_CODE)
-        result.error(
-            "SHIZUKU_PERMISSION_REQUIRED",
-            "Grant Shizuku permission, then connect again.",
-            null,
-        )
     }
 
     private fun hasShizukuPermission(): Boolean =
@@ -523,6 +555,9 @@ class MainActivity : FlutterActivity(), MethodChannel.MethodCallHandler,
     }
 
     override fun onDestroy() {
+        Shizuku.removeRequestPermissionResultListener(shizukuPermissionListener)
+        pendingShizukuPermissionCallback?.invoke(false)
+        pendingShizukuPermissionCallback = null
         pendingDocumentResult?.error(
             "ACTIVITY_DESTROYED",
             "The document picker was interrupted because the activity was closed.",

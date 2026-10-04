@@ -1,14 +1,17 @@
 import 'package:adb_helper/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class AppShell extends StatelessWidget {
+import 'core/gateway/device_providers.dart';
+
+class AppShell extends ConsumerWidget {
   const AppShell({super.key, required this.navigationShell});
 
   final StatefulNavigationShell navigationShell;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final width = MediaQuery.sizeOf(context).width;
     final destinations = [
@@ -24,8 +27,13 @@ class AppShell extends StatelessWidget {
             NavigationRail(
               extended: width >= 1024,
               selectedIndex: navigationShell.currentIndex,
-              onDestinationSelected: (index) => navigationShell.goBranch(index),
-              labelType: width >= 1024 ? null : NavigationRailLabelType.selected,
+              onDestinationSelected: (index) {
+                if (index == 0) ref.invalidate(availableDevicesProvider);
+                navigationShell.goBranch(index);
+              },
+              labelType: width >= 1024
+                  ? null
+                  : NavigationRailLabelType.selected,
               destinations: [
                 for (final destination in destinations)
                   NavigationRailDestination(
@@ -46,7 +54,10 @@ class AppShell extends StatelessWidget {
       body: navigationShell,
       bottomNavigationBar: NavigationBar(
         selectedIndex: navigationShell.currentIndex,
-        onDestinationSelected: (index) => navigationShell.goBranch(index),
+        onDestinationSelected: (index) {
+          if (index == 0) ref.invalidate(availableDevicesProvider);
+          navigationShell.goBranch(index);
+        },
         destinations: [
           for (final destination in destinations)
             NavigationDestination(

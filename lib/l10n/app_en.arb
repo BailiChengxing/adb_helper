@@ -134,6 +134,8 @@
   "storageLocation": "Storage location",
   "systemRoot": "System root directory",
   "internalStorage": "Internal storage",
+  "androidOnlyPermissions": "Root and Shizuku execution are only available on Android.",
+  "shizukuPermissionNotGranted": "Shizuku permission was not granted. Check that Shizuku is running and approve this app.",
   "deviceInformation": "Device information",
   "noDeviceInformation": "No device information is available.",
   "installAab": "Install AAB",

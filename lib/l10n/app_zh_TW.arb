@@ -132,6 +132,8 @@
   "storageLocation": "儲存位置",
   "systemRoot": "系統根目錄",
   "internalStorage": "內部儲存空間",
+  "androidOnlyPermissions": "Root 和 Shizuku 執行方式僅適用於 Android。",
+  "shizukuPermissionNotGranted": "未取得 Shizuku 權限。請確認 Shizuku 正在執行並核准本應用程式的請求。",
   "deviceInformation": "裝置資訊",
   "noDeviceInformation": "沒有可用的裝置資訊。",
   "installAab": "安裝 AAB",
