@@ -48,7 +48,10 @@ void main() {
     router.go('/devices');
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('Device actions').at(1));
+    final secondDeviceActions = find.byTooltip('Device actions').at(1);
+    await tester.ensureVisible(secondDeviceActions);
+    await tester.pumpAndSettle();
+    await tester.tap(secondDeviceActions);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Terminal').last);
     await tester.pumpAndSettle();
@@ -90,6 +93,7 @@ void main() {
 
     expect(find.textContaining('com.example.notes'), findsOneWidget);
     expect(find.text('Notes'), findsOneWidget);
+    expect(find.text('Settings'), findsAtLeastNWidgets(1));
     await tester.tap(find.text('Install APK'));
     await tester.pumpAndSettle();
     expect(find.text('Install AAB'), findsOneWidget);

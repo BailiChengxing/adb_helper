@@ -404,27 +404,14 @@ class _DeviceWorkbench extends ConsumerWidget {
         else
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-            sliver: SliverLayoutBuilder(
-              builder: (context, constraints) {
-                final width = constraints.crossAxisExtent;
-                final columns = width >= 960
-                    ? 3
-                    : width >= 620
-                    ? 2
-                    : 1;
-                return SliverGrid(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) => _DeviceCard(device: devices[index]),
-                    childCount: devices.length,
-                  ),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: columns,
-                    mainAxisExtent: 280,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                  ),
-                );
-              },
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _DeviceCard(device: devices[index]),
+                ),
+                childCount: devices.length,
+              ),
             ),
           ),
       ],
@@ -442,83 +429,56 @@ class _DeviceCard extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     return Card(
       clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: CircleAvatar(
+          backgroundColor:
+              Theme.of(context).colorScheme.primaryContainer,
+          child: Icon(_transportIcon(device.transport)),
+        ),
+        title: Text(
+          device.label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: Theme.of(context)
-                      .colorScheme
-                      .primaryContainer,
-                  child: Icon(_transportIcon(device.transport)),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        device.label,
-                        style: Theme.of(context).textTheme.titleMedium,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        _transportName(device.transport, l10n),
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
-                ),
-                PopupMenuButton<String>(
-                  tooltip: l10n.deviceActions,
-                  onSelected: (action) => _selectAction(context, action),
-                  itemBuilder: (context) => [
-                    PopupMenuItem(
-                      value: 'terminal',
-                      child: _menuEntry(Icons.terminal, l10n.terminal),
-                    ),
-                    PopupMenuItem(
-                      value: 'files',
-                      child: _menuEntry(Icons.folder_outlined, l10n.files),
-                    ),
-                    PopupMenuItem(
-                      value: 'apps',
-                      child: _menuEntry(Icons.apps_outlined, l10n.applications),
-                    ),
-                    PopupMenuItem(
-                      value: 'info',
-                      child: _menuEntry(
-                        Icons.info_outline,
-                        l10n.deviceInformation,
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: 'mirror',
-                      child: _menuEntry(Icons.cast, l10n.mirror),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
+            Text(_transportName(device.transport, l10n)),
             Text(
               device.id,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall,
             ),
-            const Spacer(),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: () => _selectAction(context, 'terminal'),
-                icon: const Icon(Icons.terminal),
-                label: Text(l10n.connect),
+          ],
+        ),
+        trailing: PopupMenuButton<String>(
+          tooltip: l10n.deviceActions,
+          onSelected: (action) => _selectAction(context, action),
+          itemBuilder: (context) => [
+            PopupMenuItem(
+              value: 'info',
+              child: _menuEntry(
+                Icons.info_outline,
+                l10n.deviceInformation,
               ),
+            ),
+            PopupMenuItem(
+              value: 'terminal',
+              child: _menuEntry(Icons.terminal, l10n.terminal),
+            ),
+            PopupMenuItem(
+              value: 'files',
+              child: _menuEntry(Icons.folder_outlined, l10n.files),
+            ),
+            PopupMenuItem(
+              value: 'apps',
+              child: _menuEntry(Icons.apps_outlined, l10n.applications),
+            ),
+            PopupMenuItem(
+              value: 'mirror',
+              child: _menuEntry(Icons.cast, l10n.mirror),
             ),
           ],
         ),

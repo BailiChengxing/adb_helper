@@ -65,7 +65,8 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
           (device) =>
               device.transport == Transport.local ||
               device.transport == Transport.wireless ||
-              device.transport == Transport.otg,
+              device.transport == Transport.otg ||
+              device.transport == Transport.usb,
         )
         .toList(growable: false);
     final current = widget.device ?? ref.watch(selectedFileDeviceProvider);
@@ -100,7 +101,8 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
       transport: selected.transport,
       serial:
           selected.transport == Transport.wireless ||
-              selected.transport == Transport.otg
+              selected.transport == Transport.otg ||
+              selected.transport == Transport.usb
           ? selected.id
           : null,
     );
@@ -418,7 +420,8 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
           transport: selected.transport,
           serial:
               selected.transport == Transport.wireless ||
-                  selected.transport == Transport.otg
+                  selected.transport == Transport.otg ||
+                  selected.transport == Transport.usb
               ? selected.id
               : null,
         ),

@@ -64,29 +64,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
           ListTile(
             leading: const Icon(Icons.palette_outlined),
             title: Text(l10n.theme),
-            trailing: DropdownButton<AppTheme>(
-              value: settings.theme,
-              onChanged: (value) {
-                if (value != null) controller.setTheme(value);
-              },
-              items: [
-                DropdownMenuItem(
-                  value: AppTheme.system,
-                  child: Text(l10n.themeSystem),
-                ),
-                DropdownMenuItem(
-                  value: AppTheme.light,
-                  child: Text(l10n.themeLight),
-                ),
-                DropdownMenuItem(
-                  value: AppTheme.dark,
-                  child: Text(l10n.themeDark),
-                ),
-                DropdownMenuItem(
-                  value: AppTheme.amoled,
-                  child: Text(l10n.themeAmoled),
-                ),
-              ],
+            subtitle: Text(_themeLabel(settings.theme, l10n)),
+            trailing: IconButton(
+              tooltip: l10n.theme,
+              onPressed: () =>
+                  _selectTheme(context, settings.theme, controller),
+              icon: const Icon(Icons.edit_outlined),
             ),
           ),
           ListTile(
@@ -216,8 +199,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                     }
                   } catch (error) {
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context)
-                          .showSnackBar(SnackBar(content: Text('$error')));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('$error')),
+                      );
                     }
                   }
                 },
@@ -285,6 +269,41 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       Transport.root => l10n.rootPermission,
       _ => l10n.localShellDescription,
     };
+  }
+
+  String _themeLabel(AppTheme theme, AppLocalizations l10n) => switch (theme) {
+    AppTheme.system => l10n.themeSystem,
+    AppTheme.light => l10n.themeLight,
+    AppTheme.dark => l10n.themeDark,
+    AppTheme.amoled => l10n.themeAmoled,
+  };
+
+  Future<void> _selectTheme(
+    BuildContext context,
+    AppTheme selectedTheme,
+    AppSettingsController controller,
+  ) async {
+    final l10n = AppLocalizations.of(context);
+    final theme = await showDialog<AppTheme>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: Text(l10n.theme),
+        children: [
+          for (final option in AppTheme.values)
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(dialogContext, option),
+              child: Row(
+                children: [
+                  Expanded(child: Text(_themeLabel(option, l10n))),
+                  if (option == selectedTheme)
+                    const Icon(Icons.check, size: 18),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+    if (theme != null) await controller.setTheme(theme);
   }
 
   Widget _sectionTitle(BuildContext context, String title) {

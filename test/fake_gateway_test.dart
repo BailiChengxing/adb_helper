@@ -1,6 +1,10 @@
 import 'package:adb_helper/core/gateway/fake_device_gateway.dart';
 import 'package:adb_helper/core/gateway/fake_file_sync.dart';
+import 'package:adb_helper/core/gateway/desktop_device_gateway.dart';
+import 'package:adb_helper/core/gateway/device_gateway.dart';
+import 'package:adb_helper/core/gateway/device_providers.dart';
 import 'package:adb_helper/core/model/device.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -46,5 +50,24 @@ void main() {
       await sync.delete('$internalStorage/Archive');
       expect((await sync.list(internalStorage)).any((entry) => entry.name == 'Archive'), isFalse);
     });
+  });
+
+  test('desktop file sessions use the ADB-backed file sync', () {
+    final gateway = DesktopDeviceGateway();
+    final container = ProviderContainer(
+      overrides: [deviceGatewayProvider.overrideWithValue(gateway)],
+    );
+    addTearDown(container.dispose);
+
+    final sync = container.read(
+      fileSyncProvider(
+        const SessionSpec(
+          transport: Transport.usb,
+          serial: 'device-serial',
+        ),
+      ),
+    );
+
+    expect(sync, isNot(isA<FakeFileSync>()));
   });
 }

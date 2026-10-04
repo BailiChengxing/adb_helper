@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:adb_helper/core/model/device.dart';
 import 'package:adb_helper/core/settings/app_settings.dart';
 import 'package:adb_helper/features/terminal/terminal_controller.dart';
@@ -138,7 +140,8 @@ class _TerminalScreenState extends ConsumerState<TerminalScreen> {
                       child: Text(
                         l10n.terminalWelcome,
                         style: TextStyle(
-                          fontFamily: 'monospace',
+                          fontFamily: Platform.isWindows ? 'Consolas' : 'monospace',
+                          fontFamilyFallback: const ['Microsoft YaHei UI', 'SimSun'],
                           fontSize: settings.terminalFontSize,
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
@@ -151,7 +154,8 @@ class _TerminalScreenState extends ConsumerState<TerminalScreen> {
                           children: _outputSpans(activeSession.output, context),
                         ),
                         style: TextStyle(
-                          fontFamily: 'monospace',
+                          fontFamily: Platform.isWindows ? 'Consolas' : 'monospace',
+                          fontFamilyFallback: const ['Microsoft YaHei UI', 'SimSun'],
                           fontSize: settings.terminalFontSize,
                           height: 1.45,
                         ),

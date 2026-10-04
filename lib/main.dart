@@ -147,12 +147,17 @@ class _AdbHelperMaterialApp extends ConsumerWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      theme: ThemeData(useMaterial3: true, colorScheme: lightScheme),
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: lightScheme,
+        fontFamily: Platform.isWindows ? 'Microsoft YaHei UI' : null,
+      ),
       darkTheme: ThemeData(
         useMaterial3: true,
         colorScheme: settings.theme == AppTheme.amoled
             ? amoledScheme
             : darkScheme,
+        fontFamily: Platform.isWindows ? 'Microsoft YaHei UI' : null,
         scaffoldBackgroundColor: settings.theme == AppTheme.amoled
             ? Colors.black
             : null,

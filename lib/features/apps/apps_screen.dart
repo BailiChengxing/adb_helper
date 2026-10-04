@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:adb_helper/core/gateway/desktop_device_gateway.dart';
 import 'package:adb_helper/core/gateway/device_gateway.dart';
 import 'package:adb_helper/core/model/device.dart';
 import 'package:adb_helper/l10n/app_localizations.dart';
@@ -16,13 +19,12 @@ class AppsScreen extends ConsumerStatefulWidget {
 class _AppsScreenState extends ConsumerState<AppsScreen> {
   final _searchController = TextEditingController();
   late Future<List<InstalledApp>> _applications;
-  bool _showSystemApps = false;
+  bool _showSystemApps = true;
   bool _busy = false;
+  int _applicationGeneration = 0;
 
-  SessionSpec get _spec => SessionSpec(
-    transport: widget.device.transport,
-    serial: widget.device.id,
-  );
+  SessionSpec get _spec =>
+      SessionSpec(transport: widget.device.transport, serial: widget.device.id);
 
   @override
   void initState() {
@@ -36,8 +38,23 @@ class _AppsScreenState extends ConsumerState<AppsScreen> {
     super.dispose();
   }
 
-  Future<List<InstalledApp>> _loadApplications() =>
-      ref.read(deviceGatewayProvider).listApplications(_spec);
+  Future<List<InstalledApp>> _loadApplications() async {
+    final generation = ++_applicationGeneration;
+    final gateway = ref.read(deviceGatewayProvider);
+    final applications = await gateway.listApplications(_spec);
+    if (gateway is! DesktopDeviceGateway) return applications;
+
+    unawaited(
+      gateway
+          .enrichApplications(_spec, applications)
+          .then((enriched) {
+            if (!mounted || generation != _applicationGeneration) return;
+            setState(() => _applications = Future.value(enriched));
+          })
+          .catchError((Object _) {}),
+    );
+    return applications;
+  }
 
   void _refresh() {
     setState(() => _applications = _loadApplications());
@@ -148,8 +165,7 @@ class _AppsScreenState extends ConsumerState<AppsScreen> {
                           app.packageName,
                           if (app.systemApp) l10n.systemApp,
                           if (app.versionName != null) app.versionName!,
-                          if (app.versionCode != null)
-                            'v${app.versionCode}',
+                          if (app.versionCode != null) 'v${app.versionCode}',
                         ].join(' · '),
                       ),
                       onTap: _busy
@@ -310,10 +326,9 @@ class _AppsScreenState extends ConsumerState<AppsScreen> {
   Future<bool> _launch(InstalledApp app) {
     final successMessage = AppLocalizations.of(context).launchSuccess;
     return _runOperation(() async {
-      await ref.read(deviceGatewayProvider).launchApplication(
-        _spec,
-        app.packageName,
-      );
+      await ref
+          .read(deviceGatewayProvider)
+          .launchApplication(_spec, app.packageName);
       _notify(successMessage);
     });
   }
@@ -327,10 +342,9 @@ class _AppsScreenState extends ConsumerState<AppsScreen> {
           await _launch(app);
           return;
         case 'forceStop':
-          if (!await _runOperation(() => gateway.forceStopApplication(
-            _spec,
-            app.packageName,
-          ))) {
+          if (!await _runOperation(
+            () => gateway.forceStopApplication(_spec, app.packageName),
+          )) {
             return;
           }
           break;
@@ -341,28 +355,28 @@ class _AppsScreenState extends ConsumerState<AppsScreen> {
           )) {
             return;
           }
-          if (!await _runOperation(() => gateway.clearApplicationData(
-            _spec,
-            app.packageName,
-          ))) {
+          if (!await _runOperation(
+            () => gateway.clearApplicationData(_spec, app.packageName),
+          )) {
             return;
           }
           break;
         case 'toggle':
-          if (!await _runOperation(() => gateway.setApplicationEnabled(
-            _spec,
-            app.packageName,
-            !app.enabled,
-          ))) {
+          if (!await _runOperation(
+            () => gateway.setApplicationEnabled(
+              _spec,
+              app.packageName,
+              !app.enabled,
+            ),
+          )) {
             return;
           }
           _refresh();
           break;
         case 'settings':
-          await _runOperation(() => gateway.openApplicationSettings(
-            _spec,
-            app.packageName,
-          ));
+          await _runOperation(
+            () => gateway.openApplicationSettings(_spec, app.packageName),
+          );
           return;
         case 'uninstall':
           if (!await _confirm(
@@ -371,10 +385,9 @@ class _AppsScreenState extends ConsumerState<AppsScreen> {
           )) {
             return;
           }
-          if (!await _runOperation(() => gateway.uninstallApplication(
-            _spec,
-            app.packageName,
-          ))) {
+          if (!await _runOperation(
+            () => gateway.uninstallApplication(_spec, app.packageName),
+          )) {
             return;
           }
           _refresh();
@@ -385,7 +398,11 @@ class _AppsScreenState extends ConsumerState<AppsScreen> {
       return;
     }
     if (mounted) {
-      _notify(action == 'clearData' ? l10n.clearAppDataSuccess : l10n.operationSuccess);
+      _notify(
+        action == 'clearData'
+            ? l10n.clearAppDataSuccess
+            : l10n.operationSuccess,
+      );
     }
   }
 
