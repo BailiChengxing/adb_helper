@@ -3,27 +3,36 @@ import 'package:adb_helper/core/model/device.dart';
 class FakeFileSync implements FileSync {
   final Map<String, List<FileEntry>> _directories = {
     '/': [
-      _directory('sdcard', '/sdcard'),
+      _directory('storage', '/storage'),
       _directory('system', '/system'),
       _directory('data', '/data'),
     ],
-    '/sdcard': [
-      _directory('Download', '/sdcard/Download'),
-      _directory('Pictures', '/sdcard/Pictures'),
-      _directory('Android', '/sdcard/Android'),
-      _file('readme.txt', '/sdcard/readme.txt', 128),
+    '/storage': [
+      _directory('emulated', '/storage/emulated'),
     ],
-    '/sdcard/Download': [],
-    '/sdcard/Pictures': [],
-    '/sdcard/Android': [
-      _directory('media', '/sdcard/Android/media'),
-      _directory('data', '/sdcard/Android/data'),
+    '/storage/emulated': [
+      _directory('0', '/storage/emulated/0'),
     ],
-    '/sdcard/Android/media': [],
-    '/sdcard/Android/data': [],
+    '/storage/emulated/0': [
+      _directory('Download', '/storage/emulated/0/Download'),
+      _directory('Pictures', '/storage/emulated/0/Pictures'),
+      _directory('Android', '/storage/emulated/0/Android'),
+      _file('readme.txt', '/storage/emulated/0/readme.txt', 128),
+    ],
+    '/storage/emulated/0/Download': [],
+    '/storage/emulated/0/Pictures': [],
+    '/storage/emulated/0/Android': [
+      _directory('media', '/storage/emulated/0/Android/media'),
+      _directory('data', '/storage/emulated/0/Android/data'),
+    ],
+    '/storage/emulated/0/Android/media': [],
+    '/storage/emulated/0/Android/data': [],
     '/system': [],
     '/data': [],
   };
+
+  @override
+  FileSync forSession(SessionSpec spec) => this;
 
   static FileEntry _directory(String name, String path) => FileEntry(
     name: name,
@@ -49,8 +58,12 @@ class FakeFileSync implements FileSync {
   }
 
   @override
-  Future<void> push(String local, String remote, ProgressSink onProgress) async {
-    onProgress(0.5, 'Uploading $local');
+  Future<void> push(
+    String documentUri,
+    String remote,
+    ProgressSink onProgress,
+  ) async {
+    onProgress(0.5, 'Uploading $documentUri');
     final normalized = _normalize(remote);
     final parent = _parent(normalized);
     _directories.putIfAbsent(parent, () => []).add(_file(_name(normalized), normalized, 4096));
@@ -58,9 +71,13 @@ class FakeFileSync implements FileSync {
   }
 
   @override
-  Future<void> pull(String remote, String local, ProgressSink onProgress) async {
+  Future<void> pull(
+    String remote,
+    String documentUri,
+    ProgressSink onProgress,
+  ) async {
     onProgress(0.5, 'Downloading $remote');
-    onProgress(1, 'Saved to $local');
+    onProgress(1, 'Saved to $documentUri');
   }
 
   @override

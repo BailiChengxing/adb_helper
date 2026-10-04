@@ -38,12 +38,13 @@ void main() {
     test('creates, renames, and deletes a directory entry', () async {
       final sync = FakeFileSync();
 
-      await sync.mkdir('/sdcard/Notes');
-      expect((await sync.list('/sdcard')).any((entry) => entry.name == 'Notes'), isTrue);
-      await sync.rename('/sdcard/Notes', '/sdcard/Archive');
-      expect((await sync.list('/sdcard')).any((entry) => entry.name == 'Archive'), isTrue);
-      await sync.delete('/sdcard/Archive');
-      expect((await sync.list('/sdcard')).any((entry) => entry.name == 'Archive'), isFalse);
+      const internalStorage = '/storage/emulated/0';
+      await sync.mkdir('$internalStorage/Notes');
+      expect((await sync.list(internalStorage)).any((entry) => entry.name == 'Notes'), isTrue);
+      await sync.rename('$internalStorage/Notes', '$internalStorage/Archive');
+      expect((await sync.list(internalStorage)).any((entry) => entry.name == 'Archive'), isTrue);
+      await sync.delete('$internalStorage/Archive');
+      expect((await sync.list(internalStorage)).any((entry) => entry.name == 'Archive'), isFalse);
     });
   });
 }

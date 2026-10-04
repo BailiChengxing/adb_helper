@@ -1,4 +1,6 @@
-enum Transport { local, shizuku, root, wireless, otg }
+import 'dart:typed_data';
+
+enum Transport { local, shizuku, root, wireless, otg, usb }
 enum ShellStream { stdout, stderr, exit }
 
 typedef ProgressSink = void Function(double progress, String message);
@@ -13,6 +15,24 @@ class DeviceRef {
   final String id;
   final String label;
   final Transport transport;
+}
+
+class InstalledApp {
+  const InstalledApp({
+    required this.packageName,
+    this.label,
+    this.versionName,
+    this.versionCode,
+    this.systemApp = false,
+    this.enabled = true,
+  });
+
+  final String packageName;
+  final String? label;
+  final String? versionName;
+  final int? versionCode;
+  final bool systemApp;
+  final bool enabled;
 }
 
 class SessionSpec {
@@ -57,9 +77,39 @@ class PairingResult {
 
 abstract interface class DeviceGateway {
   Future<List<DeviceRef>> discover();
+  Future<Map<String, String>> deviceInformation(SessionSpec spec);
   Future<PairingResult> pair(PairSpec spec);
+  Future<DeviceRef> connectWireless(String host, int port);
   Future<ShellSession> open(SessionSpec spec);
   Future<int> execOnce(SessionSpec spec, String command);
+  Future<RawSocket> openRaw(SessionSpec spec, String destination);
+  Future<List<InstalledApp>> listApplications(SessionSpec spec);
+  Future<List<InstalledApp>> listHostApplications();
+  Future<String?> pickDocument({
+    bool apkOnly = false,
+    bool aabOnly = false,
+    String? saveAs,
+  });
+  Future<void> installApplication(SessionSpec spec, String documentUri);
+  Future<void> installHostApplication(SessionSpec spec, String packageName);
+  Future<void> uninstallApplication(SessionSpec spec, String packageName);
+  Future<void> launchApplication(SessionSpec spec, String packageName);
+  Future<void> forceStopApplication(SessionSpec spec, String packageName);
+  Future<void> clearApplicationData(SessionSpec spec, String packageName);
+  Future<void> setApplicationEnabled(
+    SessionSpec spec,
+    String packageName,
+    bool enabled,
+  );
+  Future<void> openApplicationSettings(SessionSpec spec, String packageName);
+  Future<Map<String, bool>> executionCapabilities({bool checkRoot = false});
+  Future<bool> requestShizukuPermission();
+}
+
+abstract interface class RawSocket {
+  Stream<Uint8List> get bytes;
+  Future<void> send(Uint8List data);
+  Future<void> close();
 }
 
 abstract interface class ShellSession {
@@ -113,9 +163,10 @@ class FileStat {
 }
 
 abstract interface class FileSync {
+  FileSync forSession(SessionSpec spec);
   Future<List<FileEntry>> list(String path);
-  Future<void> push(String local, String remote, ProgressSink onProgress);
-  Future<void> pull(String remote, String local, ProgressSink onProgress);
+  Future<void> push(String documentUri, String remote, ProgressSink onProgress);
+  Future<void> pull(String remote, String documentUri, ProgressSink onProgress);
   Future<void> delete(String path);
   Future<void> mkdir(String path);
   Future<void> rename(String from, String to);

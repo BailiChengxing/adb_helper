@@ -19,8 +19,8 @@ android {
         applicationId = "com.example.adb_helper"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        minSdk = 28
+        targetSdk = 36
         // Uses the version code from pubspec.yaml. When using split APKs, 1000 * ABI_VERSION
         // is added automatically by Flutter. (https://developer.android.com/studio/build/configure-apk-splits#configure-APK-versions)
         // You can force using the value of versionCode by specifying the `-P force-version-code-ignoring-abi=true`
@@ -36,6 +36,15 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+}
+
+dependencies {
+    implementation("dev.rikka.shizuku:api:12.2.0")
+    implementation("com.github.topjohnwu.libsu:core:6.0.0")
+    implementation("io.github.muntashirakon:libadb-android:3.1.1")
+    implementation("org.bouncycastle:bcpkix-jdk15to18:1.81")
+    implementation("org.conscrypt:conscrypt-android:2.5.2")
+    testImplementation("junit:junit:4.13.2")
 }
 
 kotlin {

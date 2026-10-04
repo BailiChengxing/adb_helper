@@ -46,6 +46,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get host => 'IP 地址或主机名';
 
   @override
+  String get pairInstructions => '请填写目标设备「无线调试」配对页面显示的信息，并确保两台设备连接同一 Wi-Fi。';
+
+  @override
   String get pairingPort => '配对端口';
 
   @override
@@ -59,6 +62,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get pairSuccess => '配对完成';
+
+  @override
+  String get pairPendingDiscovery => '配对完成。请保持无线调试开启，然后刷新设备列表。';
 
   @override
   String get pairFailed => '配对失败';
@@ -80,6 +86,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get transportOtg => 'USB OTG';
+
+  @override
+  String get transportUsb => 'USB ADB';
 
   @override
   String get sessionReady => '会话已就绪';
@@ -109,16 +118,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get filesRoot => '设备存储';
 
   @override
-  String get pushDemoFile => '推送演示文件';
+  String get pushDemoFile => '上传文件';
 
   @override
-  String get pullDemoFile => '拉取选中文件';
+  String get pullDemoFile => '下载文件';
 
   @override
-  String get uploadComplete => '演示上传完成';
+  String get uploadComplete => '文件已上传';
 
   @override
-  String get downloadComplete => '演示下载完成';
+  String get downloadComplete => '文件已下载';
 
   @override
   String get newFolder => '新建文件夹';
@@ -198,14 +207,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get save => '保存';
 
   @override
-  String get defaultTools => '随包工具（尚未集成）';
+  String get defaultTools => '使用随应用提供的 platform-tools 或 PATH 中的 adb';
 
   @override
   String get about => '关于';
 
   @override
   String get demoNotice =>
-      '当前网关为模拟器。设备、文件同步、fastboot 和 sideload 操作需要后续接入原生及桌面后端。';
+      'Windows、macOS 和 Linux 桌面端使用本机 ADB server。Android 已接入原生设备、Shell、应用和文件操作；fastboot、sideload 和 scrcpy 尚未开发。';
 
   @override
   String get runAnyway => '仍然执行';
@@ -217,6 +226,244 @@ class AppLocalizationsZh extends AppLocalizations {
   String commandOutput(String command) {
     return '命令：$command';
   }
+
+  @override
+  String get shellExecution => 'Shell 执行身份';
+
+  @override
+  String get shizukuPermission => 'Shizuku 权限';
+
+  @override
+  String get permissionGranted => '已获得权限';
+
+  @override
+  String get permissionRequired => '需要授权';
+
+  @override
+  String get shizukuUnavailable => 'Shizuku 服务未运行';
+
+  @override
+  String get checkingPermission => '正在检查权限…';
+
+  @override
+  String get requestPermission => '请求权限';
+
+  @override
+  String get rootPermission => 'Root 权限';
+
+  @override
+  String get rootUnavailable => '当前设备未提供 Root 权限';
+
+  @override
+  String get localShellDescription => '以应用自身身份运行命令';
+
+  @override
+  String get deviceWorkbench => '设备工作台';
+
+  @override
+  String deviceCount(int count) {
+    return '可用设备：$count 台';
+  }
+
+  @override
+  String get deviceConnectHelp => '请通过 USB 调试连接设备，或使用无线调试配对。';
+
+  @override
+  String get applications => '应用';
+
+  @override
+  String get installApk => '安装 APK';
+
+  @override
+  String get searchApplications => '搜索应用包名';
+
+  @override
+  String get showSystemApps => '显示系统应用';
+
+  @override
+  String get systemApp => '系统应用';
+
+  @override
+  String get noApplications => '没有符合条件的应用';
+
+  @override
+  String get retry => '重试';
+
+  @override
+  String get launchApplication => '启动';
+
+  @override
+  String get forceStopApplication => '强行停止';
+
+  @override
+  String get clearApplicationData => '清除数据';
+
+  @override
+  String get disableApplication => '停用';
+
+  @override
+  String get enableApplication => '启用';
+
+  @override
+  String get applicationSettings => '应用设置';
+
+  @override
+  String get uninstallApplication => '卸载';
+
+  @override
+  String confirmClearAppData(String packageName) {
+    return '确定清除 $packageName 的所有应用数据吗？';
+  }
+
+  @override
+  String confirmUninstallApp(String packageName) {
+    return '确定为当前用户卸载 $packageName 吗？';
+  }
+
+  @override
+  String get confirm => '确认';
+
+  @override
+  String get installSuccess => 'APK 安装成功';
+
+  @override
+  String get launchSuccess => '应用已启动';
+
+  @override
+  String get operationSuccess => '操作已完成';
+
+  @override
+  String get clearAppDataSuccess => '应用数据已清除';
+
+  @override
+  String get mirror => '镜像';
+
+  @override
+  String get mirrorNotAvailable => 'scrcpy 镜像功能暂未开发。';
+
+  @override
+  String get noFileDevice => '没有可用于文件操作的 ADB 设备。';
+
+  @override
+  String get fileDeviceHelp => '请先通过无线 ADB 或 USB OTG 连接设备。';
+
+  @override
+  String get targetDevice => '目标设备';
+
+  @override
+  String get parentFolder => '上级目录';
+
+  @override
+  String get uploadFile => '上传文件';
+
+  @override
+  String get downloadFile => '下载';
+
+  @override
+  String get remoteFileName => '设备端文件名';
+
+  @override
+  String get fileName => '文件名';
+
+  @override
+  String get invalidFileName => '请输入有效文件名，不能包含路径分隔符。';
+
+  @override
+  String get scanLocalNetwork => '扫描本地网络';
+
+  @override
+  String get connectByIp => '通过 IP 和端口直连';
+
+  @override
+  String get ipAddress => 'IP 地址';
+
+  @override
+  String get adbPort => 'ADB 端口';
+
+  @override
+  String get invalidIpAddress => '请输入有效的 IPv4 或 IPv6 地址';
+
+  @override
+  String get invalidAdbPort => '请输入 1 到 65535 之间的端口';
+
+  @override
+  String get directConnectHelp =>
+      'Android 安全无线调试需先完成配对；桌面端连接则要求目标设备已启用 ADB 网络调试。';
+
+  @override
+  String deviceConnected(String label) {
+    return '已连接到 $label';
+  }
+
+  @override
+  String get deviceActions => '设备操作';
+
+  @override
+  String get storageLocation => '存储位置';
+
+  @override
+  String get systemRoot => '系统根目录';
+
+  @override
+  String get internalStorage => '内部存储';
+
+  @override
+  String get deviceInformation => '设备信息';
+
+  @override
+  String get noDeviceInformation => '没有可用的设备信息。';
+
+  @override
+  String get installAab => '安装 AAB';
+
+  @override
+  String get installFromThisDevice => '从本机安装';
+
+  @override
+  String get noHostApplications => '本机没有可用的已安装应用。';
+
+  @override
+  String get aboutToolName => 'ADB Helper';
+
+  @override
+  String get aboutTagline => '实用的 Android 设备工作台';
+
+  @override
+  String get aboutDescription => '在一个应用中连接 Android 设备，并管理 Shell 会话、文件和应用。';
+
+  @override
+  String get aboutCapabilities => '功能介绍';
+
+  @override
+  String get aboutDevicesTitle => '设备连接';
+
+  @override
+  String get aboutDevicesDescription => '发现 ADB 设备、扫描本地网络，或通过 IP 地址和端口连接。';
+
+  @override
+  String get aboutTerminalTitle => '终端';
+
+  @override
+  String get aboutTerminalDescription =>
+      '通过本地 Shell、Shizuku、Root、无线 ADB 或 USB OTG 执行命令。';
+
+  @override
+  String get aboutFilesTitle => '文件管理';
+
+  @override
+  String get aboutFilesDescription => '浏览系统根目录或内部存储，并在设备与本机间传输文件。';
+
+  @override
+  String get aboutAppsTitle => '应用管理';
+
+  @override
+  String get aboutAppsDescription => '安装、启动、停止、启用、停用、清除数据和卸载应用。';
+
+  @override
+  String get aboutProjectDescription => '使用 Flutter 构建，面向 Android 设备维护和开发工作流。';
+
+  @override
+  String get aboutVersion => '版本 1.0.0 · scrcpy 镜像功能暂未开发';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -260,6 +507,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get host => 'IP 位址或主機名稱';
 
   @override
+  String get pairInstructions => '請填寫目標裝置「無線偵錯」配對頁面顯示的資訊，並確認兩台裝置連線至相同 Wi-Fi。';
+
+  @override
   String get pairingPort => '配對連接埠';
 
   @override
@@ -273,6 +523,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get pairSuccess => '配對完成';
+
+  @override
+  String get pairPendingDiscovery => '配對完成。請保持無線偵錯開啟，然後重新整理裝置清單。';
 
   @override
   String get pairFailed => '配對失敗';
@@ -294,6 +547,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get transportOtg => 'USB OTG';
+
+  @override
+  String get transportUsb => 'USB ADB';
 
   @override
   String get sessionReady => '工作階段就緒';
@@ -323,16 +579,16 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get filesRoot => '裝置儲存空間';
 
   @override
-  String get pushDemoFile => '推送展示檔案';
+  String get pushDemoFile => '上傳檔案';
 
   @override
-  String get pullDemoFile => '下載選取的檔案';
+  String get pullDemoFile => '下載檔案';
 
   @override
-  String get uploadComplete => '展示上傳完成';
+  String get uploadComplete => '檔案已上傳';
 
   @override
-  String get downloadComplete => '展示下載完成';
+  String get downloadComplete => '檔案已下載';
 
   @override
   String get newFolder => '新增資料夾';
@@ -412,14 +668,14 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get save => '儲存';
 
   @override
-  String get defaultTools => '隨附工具（尚未整合）';
+  String get defaultTools => '使用隨應用程式提供的 platform-tools 或 PATH 中的 adb';
 
   @override
   String get about => '關於';
 
   @override
   String get demoNotice =>
-      '目前使用模擬閘道。裝置、檔案同步、fastboot 和 sideload 操作仍需接上原生與桌面後端。';
+      'Windows、macOS 和 Linux 桌面版使用本機 ADB server。Android 已接入原生裝置、Shell、應用程式和檔案操作；fastboot、sideload 和 scrcpy 尚未開發。';
 
   @override
   String get runAnyway => '仍要執行';
@@ -431,4 +687,244 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String commandOutput(String command) {
     return '命令：$command';
   }
+
+  @override
+  String get shellExecution => 'Shell 執行身分';
+
+  @override
+  String get shizukuPermission => 'Shizuku 權限';
+
+  @override
+  String get permissionGranted => '已取得權限';
+
+  @override
+  String get permissionRequired => '需要授權';
+
+  @override
+  String get shizukuUnavailable => 'Shizuku 服務尚未執行';
+
+  @override
+  String get checkingPermission => '正在檢查權限…';
+
+  @override
+  String get requestPermission => '要求權限';
+
+  @override
+  String get rootPermission => 'Root 權限';
+
+  @override
+  String get rootUnavailable => '目前裝置未提供 Root 權限';
+
+  @override
+  String get localShellDescription => '以應用程式本身身分執行命令';
+
+  @override
+  String get deviceWorkbench => '裝置工作台';
+
+  @override
+  String deviceCount(int count) {
+    return '可用裝置：$count 台';
+  }
+
+  @override
+  String get deviceConnectHelp => '請透過 USB 偵錯連接裝置，或使用無線偵錯配對。';
+
+  @override
+  String get applications => '應用程式';
+
+  @override
+  String get installApk => '安裝 APK';
+
+  @override
+  String get searchApplications => '搜尋應用程式套件名稱';
+
+  @override
+  String get showSystemApps => '顯示系統應用程式';
+
+  @override
+  String get systemApp => '系統應用程式';
+
+  @override
+  String get noApplications => '沒有符合條件的應用程式';
+
+  @override
+  String get retry => '重試';
+
+  @override
+  String get launchApplication => '啟動';
+
+  @override
+  String get forceStopApplication => '強制停止';
+
+  @override
+  String get clearApplicationData => '清除資料';
+
+  @override
+  String get disableApplication => '停用';
+
+  @override
+  String get enableApplication => '啟用';
+
+  @override
+  String get applicationSettings => '應用程式設定';
+
+  @override
+  String get uninstallApplication => '解除安裝';
+
+  @override
+  String confirmClearAppData(String packageName) {
+    return '確定要清除 $packageName 的所有應用程式資料嗎？';
+  }
+
+  @override
+  String confirmUninstallApp(String packageName) {
+    return '確定要為目前使用者解除安裝 $packageName 嗎？';
+  }
+
+  @override
+  String get confirm => '確認';
+
+  @override
+  String get installSuccess => 'APK 安裝成功';
+
+  @override
+  String get launchSuccess => '應用程式已啟動';
+
+  @override
+  String get operationSuccess => '操作已完成';
+
+  @override
+  String get clearAppDataSuccess => '應用程式資料已清除';
+
+  @override
+  String get mirror => '鏡像';
+
+  @override
+  String get mirrorNotAvailable => 'scrcpy 鏡像功能尚未開發。';
+
+  @override
+  String get noFileDevice => '沒有可用於檔案操作的 ADB 裝置。';
+
+  @override
+  String get fileDeviceHelp => '請先透過無線 ADB 或 USB OTG 連接裝置。';
+
+  @override
+  String get targetDevice => '目標裝置';
+
+  @override
+  String get parentFolder => '上一層資料夾';
+
+  @override
+  String get uploadFile => '上傳檔案';
+
+  @override
+  String get downloadFile => '下載';
+
+  @override
+  String get remoteFileName => '裝置端檔案名稱';
+
+  @override
+  String get fileName => '檔案名稱';
+
+  @override
+  String get invalidFileName => '請輸入有效檔案名稱，且不可包含路徑分隔符號。';
+
+  @override
+  String get scanLocalNetwork => '掃描本機網路';
+
+  @override
+  String get connectByIp => '透過 IP 和連接埠直連';
+
+  @override
+  String get ipAddress => 'IP 位址';
+
+  @override
+  String get adbPort => 'ADB 連接埠';
+
+  @override
+  String get invalidIpAddress => '請輸入有效的 IPv4 或 IPv6 位址';
+
+  @override
+  String get invalidAdbPort => '請輸入 1 到 65535 之間的連接埠';
+
+  @override
+  String get directConnectHelp =>
+      'Android 安全無線偵錯需先完成配對；桌面版連線則要求目標裝置已啟用 ADB 網路偵錯。';
+
+  @override
+  String deviceConnected(String label) {
+    return '已連線至 $label';
+  }
+
+  @override
+  String get deviceActions => '裝置操作';
+
+  @override
+  String get storageLocation => '儲存位置';
+
+  @override
+  String get systemRoot => '系統根目錄';
+
+  @override
+  String get internalStorage => '內部儲存空間';
+
+  @override
+  String get deviceInformation => '裝置資訊';
+
+  @override
+  String get noDeviceInformation => '沒有可用的裝置資訊。';
+
+  @override
+  String get installAab => '安裝 AAB';
+
+  @override
+  String get installFromThisDevice => '從本機安裝';
+
+  @override
+  String get noHostApplications => '本機沒有可用的已安裝應用程式。';
+
+  @override
+  String get aboutToolName => 'ADB Helper';
+
+  @override
+  String get aboutTagline => '實用的 Android 裝置工作台';
+
+  @override
+  String get aboutDescription =>
+      '在同一個應用程式中連接 Android 裝置，並管理 Shell 工作階段、檔案和應用程式。';
+
+  @override
+  String get aboutCapabilities => '功能介紹';
+
+  @override
+  String get aboutDevicesTitle => '裝置連線';
+
+  @override
+  String get aboutDevicesDescription => '探索 ADB 裝置、掃描本機網路，或透過 IP 位址和連接埠連線。';
+
+  @override
+  String get aboutTerminalTitle => '終端機';
+
+  @override
+  String get aboutTerminalDescription =>
+      '透過本機 Shell、Shizuku、Root、無線 ADB 或 USB OTG 執行命令。';
+
+  @override
+  String get aboutFilesTitle => '檔案管理';
+
+  @override
+  String get aboutFilesDescription => '瀏覽系統根目錄或內部儲存空間，並在裝置與本機間傳輸檔案。';
+
+  @override
+  String get aboutAppsTitle => '應用程式管理';
+
+  @override
+  String get aboutAppsDescription => '安裝、啟動、停止、啟用、停用、清除資料和解除安裝應用程式。';
+
+  @override
+  String get aboutProjectDescription =>
+      '使用 Flutter 建置，適用於 Android 裝置維護和開發工作流程。';
+
+  @override
+  String get aboutVersion => '版本 1.0.0 · scrcpy 鏡像功能尚未開發';
 }

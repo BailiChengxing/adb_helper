@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:adb_helper/core/model/device.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 enum AppLanguage { system, simplifiedChinese, traditionalChinese, english }
@@ -14,6 +15,7 @@ class AppSettings {
     this.terminalFontSize = 13,
     this.confirmDangerousActions = true,
     this.platformToolsPath = '',
+    this.shellTransport = Transport.local,
   });
 
   final AppLanguage language;
@@ -21,6 +23,7 @@ class AppSettings {
   final double terminalFontSize;
   final bool confirmDangerousActions;
   final String platformToolsPath;
+  final Transport shellTransport;
 
   Locale? get locale => switch (language) {
     AppLanguage.system => null,
@@ -41,6 +44,7 @@ class AppSettings {
     double? terminalFontSize,
     bool? confirmDangerousActions,
     String? platformToolsPath,
+    Transport? shellTransport,
   }) {
     return AppSettings(
       language: language ?? this.language,
@@ -48,6 +52,7 @@ class AppSettings {
       terminalFontSize: terminalFontSize ?? this.terminalFontSize,
       confirmDangerousActions: confirmDangerousActions ?? this.confirmDangerousActions,
       platformToolsPath: platformToolsPath ?? this.platformToolsPath,
+      shellTransport: shellTransport ?? this.shellTransport,
     );
   }
 }
@@ -69,6 +74,9 @@ class AppSettingsController extends StateNotifier<AppSettings> {
       terminalFontSize: preferences.getDouble('terminalFontSize') ?? 13,
       confirmDangerousActions: preferences.getBool('confirmDangerousActions') ?? true,
       platformToolsPath: preferences.getString('platformToolsPath') ?? '',
+      shellTransport: Transport.values[
+        preferences.getInt('shellTransport') ?? Transport.local.index
+      ],
     );
   }
 
@@ -100,5 +108,11 @@ class AppSettingsController extends StateNotifier<AppSettings> {
     state = state.copyWith(platformToolsPath: path);
     final preferences = await SharedPreferences.getInstance();
     await preferences.setString('platformToolsPath', path);
+  }
+
+  Future<void> setShellTransport(Transport transport) async {
+    state = state.copyWith(shellTransport: transport);
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setInt('shellTransport', transport.index);
   }
 }

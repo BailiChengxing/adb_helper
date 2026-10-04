@@ -13,9 +13,8 @@ class AppShell extends StatelessWidget {
     final width = MediaQuery.sizeOf(context).width;
     final destinations = [
       _Destination(Icons.devices_outlined, Icons.devices, l10n.devices),
-      _Destination(Icons.terminal_outlined, Icons.terminal, l10n.terminal),
-      _Destination(Icons.folder_outlined, Icons.folder, l10n.files),
       _Destination(Icons.settings_outlined, Icons.settings, l10n.settings),
+      _Destination(Icons.info_outline, Icons.info, l10n.about),
     ];
 
     if (width >= 600) {

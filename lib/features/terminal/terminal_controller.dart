@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:adb_helper/core/gateway/device_gateway.dart';
 import 'package:adb_helper/core/model/device.dart';
+import 'package:adb_helper/core/settings/app_settings.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class TerminalState {
@@ -26,13 +27,18 @@ class TerminalState {
 }
 
 final terminalSessionsProvider = StateNotifierProvider<TerminalController, TerminalState>((ref) {
-  return TerminalController(ref.watch(deviceGatewayProvider));
+  return TerminalController(
+    ref.watch(deviceGatewayProvider),
+    () => ref.read(appSettingsProvider).shellTransport,
+  );
 });
 
 class TerminalController extends StateNotifier<TerminalState> {
-  TerminalController(this._gateway) : super(const TerminalState());
+  TerminalController(this._gateway, this._selectedTransport)
+    : super(const TerminalState());
 
   final DeviceGateway _gateway;
+  final Transport Function() _selectedTransport;
   final Map<String, ShellSession> _shellSessions = {};
   final Map<String, StreamSubscription<ShellEvent>> _subscriptions = {};
   int _nextSessionNumber = 1;
@@ -80,7 +86,7 @@ class TerminalController extends StateNotifier<TerminalState> {
       activeSessionId: remaining.isEmpty ? null : remaining.last.id,
     );
     if (remaining.isEmpty) {
-      unawaited(openSession(const SessionSpec(transport: Transport.local)));
+      unawaited(openSession(SessionSpec(transport: _selectedTransport())));
     }
   }
 

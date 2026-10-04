@@ -46,6 +46,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get host => 'IP address or host';
 
   @override
+  String get pairInstructions =>
+      'Use the target device\'s Wireless debugging pairing screen. Keep both devices on the same Wi-Fi network.';
+
+  @override
   String get pairingPort => 'Pairing port';
 
   @override
@@ -59,6 +63,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pairSuccess => 'Pairing completed';
+
+  @override
+  String get pairPendingDiscovery =>
+      'Paired. Keep Wireless debugging enabled, then refresh the device list.';
 
   @override
   String get pairFailed => 'Pairing failed';
@@ -80,6 +88,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get transportOtg => 'USB OTG';
+
+  @override
+  String get transportUsb => 'USB ADB';
 
   @override
   String get sessionReady => 'Session ready';
@@ -109,16 +120,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get filesRoot => 'Device storage';
 
   @override
-  String get pushDemoFile => 'Push demo file';
+  String get pushDemoFile => 'Upload file';
 
   @override
-  String get pullDemoFile => 'Pull selected file';
+  String get pullDemoFile => 'Download file';
 
   @override
-  String get uploadComplete => 'Demo upload completed';
+  String get uploadComplete => 'File uploaded';
 
   @override
-  String get downloadComplete => 'Demo download completed';
+  String get downloadComplete => 'File downloaded';
 
   @override
   String get newFolder => 'New folder';
@@ -199,14 +210,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get save => 'Save';
 
   @override
-  String get defaultTools => 'Bundled tools (not installed yet)';
+  String get defaultTools => 'Use bundled platform-tools or adb from PATH';
 
   @override
   String get about => 'About';
 
   @override
   String get demoNotice =>
-      'The current gateway is a simulator. Device, file-sync, fastboot, and sideload operations require native and desktop backends.';
+      'Desktop Windows, macOS, and Linux use the local ADB server. Android provides native device, shell, app, and file operations. Fastboot, sideload, and scrcpy are not implemented.';
 
   @override
   String get runAnyway => 'Run anyway';
@@ -218,4 +229,253 @@ class AppLocalizationsEn extends AppLocalizations {
   String commandOutput(String command) {
     return 'Command: $command';
   }
+
+  @override
+  String get shellExecution => 'Shell execution';
+
+  @override
+  String get shizukuPermission => 'Shizuku permission';
+
+  @override
+  String get permissionGranted => 'Permission granted';
+
+  @override
+  String get permissionRequired => 'Permission required';
+
+  @override
+  String get shizukuUnavailable => 'Shizuku is not running';
+
+  @override
+  String get checkingPermission => 'Checking permission…';
+
+  @override
+  String get requestPermission => 'Request permission';
+
+  @override
+  String get rootPermission => 'Root access';
+
+  @override
+  String get rootUnavailable => 'Root access is unavailable';
+
+  @override
+  String get localShellDescription => 'Run commands as the app user';
+
+  @override
+  String get deviceWorkbench => 'Device workbench';
+
+  @override
+  String deviceCount(int count) {
+    return '$count devices available';
+  }
+
+  @override
+  String get deviceConnectHelp =>
+      'Connect a device with USB debugging or pair it over Wi-Fi.';
+
+  @override
+  String get applications => 'Applications';
+
+  @override
+  String get installApk => 'Install APK';
+
+  @override
+  String get searchApplications => 'Search packages';
+
+  @override
+  String get showSystemApps => 'Show system apps';
+
+  @override
+  String get systemApp => 'System';
+
+  @override
+  String get noApplications => 'No applications match this filter';
+
+  @override
+  String get retry => 'Retry';
+
+  @override
+  String get launchApplication => 'Launch';
+
+  @override
+  String get forceStopApplication => 'Force stop';
+
+  @override
+  String get clearApplicationData => 'Clear data';
+
+  @override
+  String get disableApplication => 'Disable';
+
+  @override
+  String get enableApplication => 'Enable';
+
+  @override
+  String get applicationSettings => 'App settings';
+
+  @override
+  String get uninstallApplication => 'Uninstall';
+
+  @override
+  String confirmClearAppData(String packageName) {
+    return 'Clear all data for $packageName?';
+  }
+
+  @override
+  String confirmUninstallApp(String packageName) {
+    return 'Uninstall $packageName for this user?';
+  }
+
+  @override
+  String get confirm => 'Confirm';
+
+  @override
+  String get installSuccess => 'APK installed';
+
+  @override
+  String get launchSuccess => 'Application launched';
+
+  @override
+  String get operationSuccess => 'Operation completed';
+
+  @override
+  String get clearAppDataSuccess => 'Application data cleared';
+
+  @override
+  String get mirror => 'Mirror';
+
+  @override
+  String get mirrorNotAvailable => 'scrcpy mirroring is not implemented yet.';
+
+  @override
+  String get noFileDevice =>
+      'No supported ADB device is available for file operations.';
+
+  @override
+  String get fileDeviceHelp =>
+      'Connect a device over wireless ADB or USB OTG first.';
+
+  @override
+  String get targetDevice => 'Target device';
+
+  @override
+  String get parentFolder => 'Parent folder';
+
+  @override
+  String get uploadFile => 'Upload file';
+
+  @override
+  String get downloadFile => 'Download';
+
+  @override
+  String get remoteFileName => 'Remote file name';
+
+  @override
+  String get fileName => 'File name';
+
+  @override
+  String get invalidFileName =>
+      'Enter a valid file name without path separators.';
+
+  @override
+  String get scanLocalNetwork => 'Scan local network';
+
+  @override
+  String get connectByIp => 'Connect by IP and port';
+
+  @override
+  String get ipAddress => 'IP address';
+
+  @override
+  String get adbPort => 'ADB port';
+
+  @override
+  String get invalidIpAddress => 'Enter a valid IPv4 or IPv6 address';
+
+  @override
+  String get invalidAdbPort => 'Enter a port from 1 to 65535';
+
+  @override
+  String get directConnectHelp =>
+      'Android secure wireless debugging must be paired first. Desktop ADB-over-TCP must already be enabled on the target.';
+
+  @override
+  String deviceConnected(String label) {
+    return 'Connected to $label';
+  }
+
+  @override
+  String get deviceActions => 'Device actions';
+
+  @override
+  String get storageLocation => 'Storage location';
+
+  @override
+  String get systemRoot => 'System root directory';
+
+  @override
+  String get internalStorage => 'Internal storage';
+
+  @override
+  String get deviceInformation => 'Device information';
+
+  @override
+  String get noDeviceInformation => 'No device information is available.';
+
+  @override
+  String get installAab => 'Install AAB';
+
+  @override
+  String get installFromThisDevice => 'From this device';
+
+  @override
+  String get noHostApplications =>
+      'No installed applications were found on this device.';
+
+  @override
+  String get aboutToolName => 'ADB Helper';
+
+  @override
+  String get aboutTagline => 'A practical Android device workbench';
+
+  @override
+  String get aboutDescription =>
+      'Connect to Android devices and manage shell sessions, files, and applications from one place.';
+
+  @override
+  String get aboutCapabilities => 'What you can do';
+
+  @override
+  String get aboutDevicesTitle => 'Device connections';
+
+  @override
+  String get aboutDevicesDescription =>
+      'Discover ADB devices, scan the local network, or connect by IP and port.';
+
+  @override
+  String get aboutTerminalTitle => 'Terminal';
+
+  @override
+  String get aboutTerminalDescription =>
+      'Run commands through local shell, Shizuku, Root, wireless ADB, or USB OTG.';
+
+  @override
+  String get aboutFilesTitle => 'File manager';
+
+  @override
+  String get aboutFilesDescription =>
+      'Browse the system root or internal storage, and transfer files to and from a device.';
+
+  @override
+  String get aboutAppsTitle => 'Application manager';
+
+  @override
+  String get aboutAppsDescription =>
+      'Install, launch, stop, enable, disable, clear, and uninstall applications.';
+
+  @override
+  String get aboutProjectDescription =>
+      'Built with Flutter for Android device maintenance and development workflows.';
+
+  @override
+  String get aboutVersion =>
+      'Version 1.0.0 · scrcpy mirroring is not implemented yet';
 }

@@ -171,6 +171,12 @@ abstract class AppLocalizations {
   /// **'IP address or host'**
   String get host;
 
+  /// No description provided for @pairInstructions.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the target device\'s Wireless debugging pairing screen. Keep both devices on the same Wi-Fi network.'**
+  String get pairInstructions;
+
   /// No description provided for @pairingPort.
   ///
   /// In en, this message translates to:
@@ -200,6 +206,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Pairing completed'**
   String get pairSuccess;
+
+  /// No description provided for @pairPendingDiscovery.
+  ///
+  /// In en, this message translates to:
+  /// **'Paired. Keep Wireless debugging enabled, then refresh the device list.'**
+  String get pairPendingDiscovery;
 
   /// No description provided for @pairFailed.
   ///
@@ -242,6 +254,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'USB OTG'**
   String get transportOtg;
+
+  /// No description provided for @transportUsb.
+  ///
+  /// In en, this message translates to:
+  /// **'USB ADB'**
+  String get transportUsb;
 
   /// No description provided for @sessionReady.
   ///
@@ -300,25 +318,25 @@ abstract class AppLocalizations {
   /// No description provided for @pushDemoFile.
   ///
   /// In en, this message translates to:
-  /// **'Push demo file'**
+  /// **'Upload file'**
   String get pushDemoFile;
 
   /// No description provided for @pullDemoFile.
   ///
   /// In en, this message translates to:
-  /// **'Pull selected file'**
+  /// **'Download file'**
   String get pullDemoFile;
 
   /// No description provided for @uploadComplete.
   ///
   /// In en, this message translates to:
-  /// **'Demo upload completed'**
+  /// **'File uploaded'**
   String get uploadComplete;
 
   /// No description provided for @downloadComplete.
   ///
   /// In en, this message translates to:
-  /// **'Demo download completed'**
+  /// **'File downloaded'**
   String get downloadComplete;
 
   /// No description provided for @newFolder.
@@ -474,7 +492,7 @@ abstract class AppLocalizations {
   /// No description provided for @defaultTools.
   ///
   /// In en, this message translates to:
-  /// **'Bundled tools (not installed yet)'**
+  /// **'Use bundled platform-tools or adb from PATH'**
   String get defaultTools;
 
   /// No description provided for @about.
@@ -486,7 +504,7 @@ abstract class AppLocalizations {
   /// No description provided for @demoNotice.
   ///
   /// In en, this message translates to:
-  /// **'The current gateway is a simulator. Device, file-sync, fastboot, and sideload operations require native and desktop backends.'**
+  /// **'Desktop Windows, macOS, and Linux use the local ADB server. Android provides native device, shell, app, and file operations. Fastboot, sideload, and scrcpy are not implemented.'**
   String get demoNotice;
 
   /// No description provided for @runAnyway.
@@ -506,6 +524,462 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Command: {command}'**
   String commandOutput(String command);
+
+  /// No description provided for @shellExecution.
+  ///
+  /// In en, this message translates to:
+  /// **'Shell execution'**
+  String get shellExecution;
+
+  /// No description provided for @shizukuPermission.
+  ///
+  /// In en, this message translates to:
+  /// **'Shizuku permission'**
+  String get shizukuPermission;
+
+  /// No description provided for @permissionGranted.
+  ///
+  /// In en, this message translates to:
+  /// **'Permission granted'**
+  String get permissionGranted;
+
+  /// No description provided for @permissionRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Permission required'**
+  String get permissionRequired;
+
+  /// No description provided for @shizukuUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Shizuku is not running'**
+  String get shizukuUnavailable;
+
+  /// No description provided for @checkingPermission.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking permission…'**
+  String get checkingPermission;
+
+  /// No description provided for @requestPermission.
+  ///
+  /// In en, this message translates to:
+  /// **'Request permission'**
+  String get requestPermission;
+
+  /// No description provided for @rootPermission.
+  ///
+  /// In en, this message translates to:
+  /// **'Root access'**
+  String get rootPermission;
+
+  /// No description provided for @rootUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Root access is unavailable'**
+  String get rootUnavailable;
+
+  /// No description provided for @localShellDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Run commands as the app user'**
+  String get localShellDescription;
+
+  /// No description provided for @deviceWorkbench.
+  ///
+  /// In en, this message translates to:
+  /// **'Device workbench'**
+  String get deviceWorkbench;
+
+  /// No description provided for @deviceCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} devices available'**
+  String deviceCount(int count);
+
+  /// No description provided for @deviceConnectHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect a device with USB debugging or pair it over Wi-Fi.'**
+  String get deviceConnectHelp;
+
+  /// No description provided for @applications.
+  ///
+  /// In en, this message translates to:
+  /// **'Applications'**
+  String get applications;
+
+  /// No description provided for @installApk.
+  ///
+  /// In en, this message translates to:
+  /// **'Install APK'**
+  String get installApk;
+
+  /// No description provided for @searchApplications.
+  ///
+  /// In en, this message translates to:
+  /// **'Search packages'**
+  String get searchApplications;
+
+  /// No description provided for @showSystemApps.
+  ///
+  /// In en, this message translates to:
+  /// **'Show system apps'**
+  String get showSystemApps;
+
+  /// No description provided for @systemApp.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get systemApp;
+
+  /// No description provided for @noApplications.
+  ///
+  /// In en, this message translates to:
+  /// **'No applications match this filter'**
+  String get noApplications;
+
+  /// No description provided for @retry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retry;
+
+  /// No description provided for @launchApplication.
+  ///
+  /// In en, this message translates to:
+  /// **'Launch'**
+  String get launchApplication;
+
+  /// No description provided for @forceStopApplication.
+  ///
+  /// In en, this message translates to:
+  /// **'Force stop'**
+  String get forceStopApplication;
+
+  /// No description provided for @clearApplicationData.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear data'**
+  String get clearApplicationData;
+
+  /// No description provided for @disableApplication.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable'**
+  String get disableApplication;
+
+  /// No description provided for @enableApplication.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable'**
+  String get enableApplication;
+
+  /// No description provided for @applicationSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'App settings'**
+  String get applicationSettings;
+
+  /// No description provided for @uninstallApplication.
+  ///
+  /// In en, this message translates to:
+  /// **'Uninstall'**
+  String get uninstallApplication;
+
+  /// No description provided for @confirmClearAppData.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear all data for {packageName}?'**
+  String confirmClearAppData(String packageName);
+
+  /// No description provided for @confirmUninstallApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Uninstall {packageName} for this user?'**
+  String confirmUninstallApp(String packageName);
+
+  /// No description provided for @confirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get confirm;
+
+  /// No description provided for @installSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'APK installed'**
+  String get installSuccess;
+
+  /// No description provided for @launchSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Application launched'**
+  String get launchSuccess;
+
+  /// No description provided for @operationSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Operation completed'**
+  String get operationSuccess;
+
+  /// No description provided for @clearAppDataSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Application data cleared'**
+  String get clearAppDataSuccess;
+
+  /// No description provided for @mirror.
+  ///
+  /// In en, this message translates to:
+  /// **'Mirror'**
+  String get mirror;
+
+  /// No description provided for @mirrorNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'scrcpy mirroring is not implemented yet.'**
+  String get mirrorNotAvailable;
+
+  /// No description provided for @noFileDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'No supported ADB device is available for file operations.'**
+  String get noFileDevice;
+
+  /// No description provided for @fileDeviceHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect a device over wireless ADB or USB OTG first.'**
+  String get fileDeviceHelp;
+
+  /// No description provided for @targetDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Target device'**
+  String get targetDevice;
+
+  /// No description provided for @parentFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Parent folder'**
+  String get parentFolder;
+
+  /// No description provided for @uploadFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload file'**
+  String get uploadFile;
+
+  /// No description provided for @downloadFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Download'**
+  String get downloadFile;
+
+  /// No description provided for @remoteFileName.
+  ///
+  /// In en, this message translates to:
+  /// **'Remote file name'**
+  String get remoteFileName;
+
+  /// No description provided for @fileName.
+  ///
+  /// In en, this message translates to:
+  /// **'File name'**
+  String get fileName;
+
+  /// No description provided for @invalidFileName.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid file name without path separators.'**
+  String get invalidFileName;
+
+  /// No description provided for @scanLocalNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan local network'**
+  String get scanLocalNetwork;
+
+  /// No description provided for @connectByIp.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect by IP and port'**
+  String get connectByIp;
+
+  /// No description provided for @ipAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'IP address'**
+  String get ipAddress;
+
+  /// No description provided for @adbPort.
+  ///
+  /// In en, this message translates to:
+  /// **'ADB port'**
+  String get adbPort;
+
+  /// No description provided for @invalidIpAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid IPv4 or IPv6 address'**
+  String get invalidIpAddress;
+
+  /// No description provided for @invalidAdbPort.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a port from 1 to 65535'**
+  String get invalidAdbPort;
+
+  /// No description provided for @directConnectHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Android secure wireless debugging must be paired first. Desktop ADB-over-TCP must already be enabled on the target.'**
+  String get directConnectHelp;
+
+  /// No description provided for @deviceConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected to {label}'**
+  String deviceConnected(String label);
+
+  /// No description provided for @deviceActions.
+  ///
+  /// In en, this message translates to:
+  /// **'Device actions'**
+  String get deviceActions;
+
+  /// No description provided for @storageLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage location'**
+  String get storageLocation;
+
+  /// No description provided for @systemRoot.
+  ///
+  /// In en, this message translates to:
+  /// **'System root directory'**
+  String get systemRoot;
+
+  /// No description provided for @internalStorage.
+  ///
+  /// In en, this message translates to:
+  /// **'Internal storage'**
+  String get internalStorage;
+
+  /// No description provided for @deviceInformation.
+  ///
+  /// In en, this message translates to:
+  /// **'Device information'**
+  String get deviceInformation;
+
+  /// No description provided for @noDeviceInformation.
+  ///
+  /// In en, this message translates to:
+  /// **'No device information is available.'**
+  String get noDeviceInformation;
+
+  /// No description provided for @installAab.
+  ///
+  /// In en, this message translates to:
+  /// **'Install AAB'**
+  String get installAab;
+
+  /// No description provided for @installFromThisDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'From this device'**
+  String get installFromThisDevice;
+
+  /// No description provided for @noHostApplications.
+  ///
+  /// In en, this message translates to:
+  /// **'No installed applications were found on this device.'**
+  String get noHostApplications;
+
+  /// No description provided for @aboutToolName.
+  ///
+  /// In en, this message translates to:
+  /// **'ADB Helper'**
+  String get aboutToolName;
+
+  /// No description provided for @aboutTagline.
+  ///
+  /// In en, this message translates to:
+  /// **'A practical Android device workbench'**
+  String get aboutTagline;
+
+  /// No description provided for @aboutDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect to Android devices and manage shell sessions, files, and applications from one place.'**
+  String get aboutDescription;
+
+  /// No description provided for @aboutCapabilities.
+  ///
+  /// In en, this message translates to:
+  /// **'What you can do'**
+  String get aboutCapabilities;
+
+  /// No description provided for @aboutDevicesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Device connections'**
+  String get aboutDevicesTitle;
+
+  /// No description provided for @aboutDevicesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Discover ADB devices, scan the local network, or connect by IP and port.'**
+  String get aboutDevicesDescription;
+
+  /// No description provided for @aboutTerminalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Terminal'**
+  String get aboutTerminalTitle;
+
+  /// No description provided for @aboutTerminalDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Run commands through local shell, Shizuku, Root, wireless ADB, or USB OTG.'**
+  String get aboutTerminalDescription;
+
+  /// No description provided for @aboutFilesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'File manager'**
+  String get aboutFilesTitle;
+
+  /// No description provided for @aboutFilesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse the system root or internal storage, and transfer files to and from a device.'**
+  String get aboutFilesDescription;
+
+  /// No description provided for @aboutAppsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Application manager'**
+  String get aboutAppsTitle;
+
+  /// No description provided for @aboutAppsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Install, launch, stop, enable, disable, clear, and uninstall applications.'**
+  String get aboutAppsDescription;
+
+  /// No description provided for @aboutProjectDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Built with Flutter for Android device maintenance and development workflows.'**
+  String get aboutProjectDescription;
+
+  /// No description provided for @aboutVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Version 1.0.0 · scrcpy mirroring is not implemented yet'**
+  String get aboutVersion;
 }
 
 class _AppLocalizationsDelegate
