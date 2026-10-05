@@ -190,5 +190,10 @@
   "setResolution": "修改解析度",
   "invalidNumber": "請輸入有效數字。",
   "installXapk": "安裝 XAPK",
-  "installApks": "安裝 APKS"
+  "installApks": "安裝 APKS",
+  "mirrorStarting": "正在啟動 scrcpy 鏡像…",
+  "mirrorReady": "scrcpy 鏡像已就緒",
+  "mirrorFailed": "無法啟動鏡像",
+  "startMirror": "啟動鏡像",
+  "stopMirror": "停止鏡像"
 }

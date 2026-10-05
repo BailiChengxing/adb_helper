@@ -51,11 +51,25 @@ class AndroidDeviceGateway implements DeviceGateway {
         .toList(growable: false);
   }
 
+  Future<T> _withTimeout<T>(Future<T> future, String operation) async {
+    try {
+      return await future.timeout(const Duration(seconds: 30));
+    } on TimeoutException {
+      throw PlatformException(
+        code: 'ANDROID_OPERATION_TIMEOUT',
+        message: '$operation timed out while connecting to the ADB device.',
+      );
+    }
+  }
+
   @override
   Future<Map<String, String>> deviceInformation(SessionSpec spec) async {
-    final result = await _commands.invokeMapMethod<String, String>(
-      'deviceInformation',
-      _sessionArguments(spec),
+    final result = await _withTimeout(
+      _commands.invokeMapMethod<String, String>(
+        'deviceInformation',
+        _sessionArguments(spec),
+      ),
+      'Device information',
     );
     if (result == null) {
       throw PlatformException(
@@ -131,9 +145,12 @@ class AndroidDeviceGateway implements DeviceGateway {
 
   @override
   Future<List<InstalledApp>> listApplications(SessionSpec spec) async {
-    final values = await _commands.invokeListMethod<Object?>(
-      'listApplications',
-      _sessionArguments(spec),
+    final values = await _withTimeout(
+      _commands.invokeListMethod<Object?>(
+        'listApplications',
+        _sessionArguments(spec),
+      ),
+      'Application list',
     );
     return (values ?? const [])
         .map((value) {
@@ -244,6 +261,29 @@ class AndroidDeviceGateway implements DeviceGateway {
   Future<bool> requestShizukuPermission() async =>
       await _commands.invokeMethod<bool>('requestShizukuPermission') ?? false;
 
+  Future<MirrorSession> startMirror(SessionSpec spec) async {
+    final result = await _commands.invokeMapMethod<Object?, Object?>(
+      'startMirror',
+      _sessionArguments(spec),
+    );
+    if (result == null) {
+      throw PlatformException(
+        code: 'MIRROR_START_FAILED',
+        message: 'The Android backend did not return a mirror session.',
+      );
+    }
+    return MirrorSession(
+      sessionId: result['mirrorId']! as String,
+      textureId: (result['textureId']! as num).toInt(),
+      width: (result['width']! as num).toInt(),
+      height: (result['height']! as num).toInt(),
+    );
+  }
+
+  Future<void> stopMirror(String sessionId) => _commands.invokeMethod<void>(
+    'stopMirror',
+    {'mirrorId': sessionId},
+  );
   AndroidFileSync fileSync(SessionSpec spec) => AndroidFileSync(_commands, spec);
 
   Future<void> _invokeOperation(
@@ -317,4 +357,16 @@ class _AndroidShellSession implements ShellSession {
       'sessionId': sessionId,
     });
   }
+}
+
+class AndroidMirrorGateway implements MirrorGateway {
+  AndroidMirrorGateway(this._gateway);
+
+  final AndroidDeviceGateway _gateway;
+
+  @override
+  Future<MirrorSession> start(SessionSpec spec) => _gateway.startMirror(spec);
+
+  @override
+  Future<void> stop(String sessionId) => _gateway.stopMirror(sessionId);
 }

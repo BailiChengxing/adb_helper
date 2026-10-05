@@ -1214,6 +1214,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Install APKS'**
   String get installApks;
+
+  /// No description provided for @mirrorStarting.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting scrcpy mirror…'**
+  String get mirrorStarting;
+
+  /// No description provided for @mirrorReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Scrcpy mirror is ready'**
+  String get mirrorReady;
+
+  /// No description provided for @mirrorFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to start the mirror'**
+  String get mirrorFailed;
+
+  /// No description provided for @startMirror.
+  ///
+  /// In en, this message translates to:
+  /// **'Start mirror'**
+  String get startMirror;
+
+  /// No description provided for @stopMirror.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop mirror'**
+  String get stopMirror;
 }
 
 class _AppLocalizationsDelegate

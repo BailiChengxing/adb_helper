@@ -192,5 +192,10 @@
   "setResolution": "Set resolution",
   "invalidNumber": "Enter a valid number.",
   "installXapk": "Install XAPK",
-  "installApks": "Install APKS"
+  "installApks": "Install APKS",
+  "mirrorStarting": "Starting scrcpy mirror…",
+  "mirrorReady": "Scrcpy mirror is ready",
+  "mirrorFailed": "Unable to start the mirror",
+  "startMirror": "Start mirror",
+  "stopMirror": "Stop mirror"
 }

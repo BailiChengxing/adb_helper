@@ -190,5 +190,10 @@
   "setResolution": "修改分辨率",
   "invalidNumber": "请输入有效数字。",
   "installXapk": "安装 XAPK",
-  "installApks": "安装 APKS"
+  "installApks": "安装 APKS",
+  "mirrorStarting": "正在启动 scrcpy 镜像…",
+  "mirrorReady": "scrcpy 镜像已就绪",
+  "mirrorFailed": "无法启动镜像",
+  "startMirror": "启动镜像",
+  "stopMirror": "停止镜像"
 }

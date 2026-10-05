@@ -1,13 +1,17 @@
 package com.example.adb_helper
 
 import android.content.pm.PackageManager
+import android.graphics.SurfaceTexture
 import android.content.Intent
 import android.net.Uri
 import android.os.Environment
 import android.os.Handler
+import android.view.Surface
 import android.os.Looper
 import android.os.Build
 import android.provider.Settings
+import io.github.muntashirakon.adb.AdbAuthenticationFailedException
+import io.github.muntashirakon.adb.AdbPairingRequiredException
 import com.example.adb_helper.gateway.AndroidShellBackend
 import com.example.adb_helper.gateway.AndroidAdbTransport
 import com.example.adb_helper.gateway.ShellEventSink
@@ -17,10 +21,12 @@ import com.example.adb_helper.gateway.WireEvent
 import rikka.shizuku.Shizuku
 import com.topjohnwu.superuser.Shell
 import io.flutter.embedding.android.FlutterActivity
+import io.flutter.view.TextureRegistry
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import java.io.IOException
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
@@ -32,6 +38,8 @@ class MainActivity : FlutterActivity(), MethodChannel.MethodCallHandler,
     private val sessions = ConcurrentHashMap<String, ShellSession>()
     private val backend by lazy { AndroidShellBackend(this) }
     private val adbTransport by lazy { AndroidAdbTransport(applicationContext, this) }
+    private val mirrors = ConcurrentHashMap<String, MirrorHandle>()
+    private var textureRegistry: TextureRegistry? = null
     @Volatile private var eventSink: EventChannel.EventSink? = null
     private var pendingDocumentResult: MethodChannel.Result? = null
     private var pendingFileAccessResult: MethodChannel.Result? = null
@@ -53,6 +61,7 @@ class MainActivity : FlutterActivity(), MethodChannel.MethodCallHandler,
             .setMethodCallHandler(this)
         EventChannel(flutterEngine.dartExecutor.binaryMessenger, EVENT_CHANNEL)
             .setStreamHandler(this)
+        textureRegistry = flutterEngine.renderer
         Shizuku.addRequestPermissionResultListener(shizukuPermissionListener)
     }
 
@@ -67,7 +76,6 @@ class MainActivity : FlutterActivity(), MethodChannel.MethodCallHandler,
             "closeSession" -> closeSession(call, result)
             "execOnce" -> execOnce(call, result)
             "requestShizukuPermission" -> requestShizukuPermission(result)
-            "requestLocalFileAccess" -> requestLocalFileAccess(result)
             "executionCapabilities" -> executionCapabilities(call, result)
             "pickDocument" -> pickDocument(call, result)
             "listApplications" -> withAdbArgs(call, result) { transport, serial, _ ->
@@ -133,40 +141,42 @@ class MainActivity : FlutterActivity(), MethodChannel.MethodCallHandler,
             }
             "listFiles" -> withAdbArgs(call, result) { transport, serial, args ->
                 val path = args.requiredString("path")
-                if (transport == "local") adbTransport.listLocalFiles(path)
+                if (transport == "local") listLocalShell(path)
                 else adbTransport.listFiles(transport, serial, path)
             }
             "pushFile" -> withAdbArgs(call, result) { transport, serial, args ->
                 val uri = args.requiredString("uri")
                 val path = args.requiredString("path")
-                if (transport == "local") adbTransport.pushLocalFile(uri, path)
+                if (transport == "local") pushLocalShell(uri, path)
                 else adbTransport.pushFile(transport, serial, uri, path)
             }
             "pullFile" -> withAdbArgs(call, result) { transport, serial, args ->
                 val path = args.requiredString("path")
                 val uri = args.requiredString("uri")
-                if (transport == "local") adbTransport.pullLocalFile(path, uri)
+                if (transport == "local") pullLocalShell(path, uri)
                 else adbTransport.pullFile(transport, serial, path, uri)
             }
             "deleteFile" -> withAdbArgs(call, result) { transport, serial, args ->
                 val path = args.requiredString("path")
-                if (transport == "local") adbTransport.deleteLocalFile(path)
+                if (transport == "local") deleteLocalShell(path)
                 else adbTransport.deleteFile(transport, serial, path)
             }
             "createDirectory" -> withAdbArgs(call, result) { transport, serial, args ->
                 val path = args.requiredString("path")
-                if (transport == "local") adbTransport.createLocalDirectory(path)
+                if (transport == "local") createLocalDirectoryShell(path)
                 else adbTransport.createDirectory(transport, serial, path)
             }
             "renameFile" -> withAdbArgs(call, result) { transport, serial, args ->
                 val from = args.requiredString("from")
                 val to = args.requiredString("to")
-                if (transport == "local") adbTransport.renameLocalFile(from, to)
+                if (transport == "local") renameLocalShell(from, to)
                 else adbTransport.renameFile(transport, serial, from, to)
             }
+            "startMirror" -> startMirror(call, result)
+            "stopMirror" -> stopMirror(call, result)
             "statFile" -> withAdbArgs(call, result) { transport, serial, args ->
                 val path = args.requiredString("path")
-                if (transport == "local") adbTransport.statLocalFile(path)
+                if (transport == "local") statLocalShell(path)
                 else adbTransport.statFile(transport, serial, path)
             }
             else -> result.notImplemented()
@@ -182,6 +192,22 @@ class MainActivity : FlutterActivity(), MethodChannel.MethodCallHandler,
             try {
                 val device = adbTransport.connectWireless(host, port)
                 mainHandler.post { result.success(device) }
+            } catch (error: AdbAuthenticationFailedException) {
+                mainHandler.post {
+                    result.error(
+                        "ADB_AUTHORIZATION_REQUIRED",
+                        "Approve USB debugging / wireless debugging authorization on the target device, then retry.",
+                        null,
+                    )
+                }
+            } catch (error: AdbPairingRequiredException) {
+                mainHandler.post {
+                    result.error(
+                        "ADB_PAIRING_REQUIRED",
+                        "Use Pair over Wi-Fi on the target device, then pair this app before retrying.",
+                        null,
+                    )
+                }
             } catch (error: Exception) {
                 mainHandler.post {
                     result.error(
@@ -260,6 +286,22 @@ class MainActivity : FlutterActivity(), MethodChannel.MethodCallHandler,
                     else throw IllegalArgumentException("An ADB device is required.")
                 val value = operation(transport, serial, args)
                 mainHandler.post { result.success(if (value == Unit) null else value) }
+            } catch (error: AdbAuthenticationFailedException) {
+                mainHandler.post {
+                    result.error(
+                        "ADB_AUTHORIZATION_REQUIRED",
+                        "Approve USB debugging / wireless debugging authorization on the target device, then retry.",
+                        null,
+                    )
+                }
+            } catch (error: AdbPairingRequiredException) {
+                mainHandler.post {
+                    result.error(
+                        "ADB_PAIRING_REQUIRED",
+                        "Use Pair over Wi-Fi on the target device, then pair this app before retrying.",
+                        null,
+                    )
+                }
             } catch (error: Exception) {
                 mainHandler.post {
                     result.error(
@@ -272,6 +314,176 @@ class MainActivity : FlutterActivity(), MethodChannel.MethodCallHandler,
         }
     }
 
+    private fun startMirror(call: MethodCall, result: MethodChannel.Result) {
+        val registry = textureRegistry
+            ?: return result.error("TEXTURE_UNAVAILABLE", "Flutter texture registry is unavailable.", null)
+        val args = call.arguments<Map<String, Any?>>() ?: emptyMap()
+        val transport = args["transport"] as? String
+            ?: return result.error("INVALID_TRANSPORT", "An ADB transport is required.", null)
+        val serial = args["serial"] as? String
+            ?: return result.error("INVALID_SERIAL", "An ADB device is required.", null)
+        if (transport != "wireless" && transport != "otg") {
+            result.error("UNSUPPORTED_TRANSPORT", "Scrcpy requires a wireless or USB ADB device.", null)
+            return
+        }
+
+        val textureEntry = registry.createSurfaceTexture()
+        val surfaceTexture = textureEntry.surfaceTexture()
+        surfaceTexture.setDefaultBufferSize(1080, 1920)
+        val surface = Surface(surfaceTexture)
+        val mirrorId = UUID.randomUUID().toString()
+
+        executor.execute {
+            try {
+                val serverBytes = assets.open("scrcpy-server").use { it.readBytes() }
+                val session = adbTransport.startScrcpy(transport, serial, serverBytes, surface)
+                if (!session.awaitSize(5_000)) {
+                    session.stop()
+                    throw IllegalStateException("The scrcpy video stream did not provide a frame size.")
+                }
+                surfaceTexture.setDefaultBufferSize(
+                    session.width.coerceAtLeast(1),
+                    session.height.coerceAtLeast(1),
+                )
+                mirrors[mirrorId] = MirrorHandle(session, textureEntry, surface)
+                mainHandler.post {
+                    result.success(
+                        mapOf(
+                            "mirrorId" to mirrorId,
+                            "textureId" to textureEntry.id(),
+                            "width" to session.width,
+                            "height" to session.height,
+                        ),
+                    )
+                }
+            } catch (error: Exception) {
+                mainHandler.post {
+                    textureEntry.release()
+                    surface.release()
+                    result.error(
+                        "MIRROR_START_FAILED",
+                        error.message ?: "Unable to start scrcpy mirroring.",
+                        null,
+                    )
+                }
+            }
+        }
+    }
+
+    private fun stopMirror(call: MethodCall, result: MethodChannel.Result) {
+        val mirrorId = call.argument<String>("mirrorId")
+            ?: return result.error("INVALID_MIRROR", "A mirror id is required.", null)
+        val handle = mirrors.remove(mirrorId)
+            ?: return result.success(null)
+
+        executor.execute {
+            try {
+                handle.session.stop()
+            } finally {
+                mainHandler.post {
+                    handle.surface.release()
+                    handle.textureEntry.release()
+                    result.success(null)
+                }
+            }
+        }
+    }
+
+    private data class MirrorHandle(
+        val session: com.example.adb_helper.gateway.ScrcpyMirrorSession,
+        val textureEntry: TextureRegistry.SurfaceTextureEntry,
+        val surface: Surface,
+    )
+    private fun localFileMode(): TransportMode = when {
+        Shizuku.pingBinder() && hasShizukuPermission() -> TransportMode.SHIZUKU
+        Shell.getShell().isRoot -> TransportMode.ROOT
+        else -> throw IOException(
+            "Local privileged file access requires Shizuku or root. " +
+                "The app will not request storage-manager permission.",
+        )
+    }
+
+    private fun runLocalCommand(command: String, input: ByteArray? = null): ByteArray {
+        val captured = backend.runCaptured(localFileMode(), command, null, input)
+        if (captured.exitCode != 0) {
+            throw IOException(
+                String(captured.output, Charsets.UTF_8).trim()
+                    .ifBlank { "Local shell command failed with exit code ${captured.exitCode}." },
+            )
+        }
+        return captured.output
+    }
+
+    private fun listLocalShell(path: String): List<Map<String, Any>> {
+        val output = String(
+            runLocalCommand("ls -la -n ${backend.shellQuote(path)}"),
+            Charsets.UTF_8,
+        )
+        val regex = Regex("""^(\S+)\s+\d+\s+\S+\s+\S+\s+(\d+)\s+(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})\s+(.+)$""")
+        return output.lineSequence()
+            .mapNotNull { line ->
+                val match = regex.find(line) ?: return@mapNotNull null
+                val name = match.groupValues[5]
+                if (name == "." || name == "..") return@mapNotNull null
+                mapOf(
+                    "name" to name,
+                    "path" to (if (path == "/") "/$name" else "$path/$name"),
+                    "isDirectory" to match.groupValues[1].startsWith("d"),
+                    "size" to (match.groupValues[2].toIntOrNull() ?: 0),
+                    "mode" to match.groupValues[1],
+                    "mtime" to "${match.groupValues[3]} ${match.groupValues[4]}",
+                )
+            }
+            .toList()
+    }
+
+    private fun statLocalShell(path: String): Map<String, Any> {
+        val output = String(
+            runLocalCommand("stat -c '%s|%A|%y' ${backend.shellQuote(path)}"),
+            Charsets.UTF_8,
+        ).trim()
+        val parts = output.split("|", limit = 3)
+        if (parts.size != 3) throw IOException("Unable to read file metadata: $path")
+        return mapOf(
+            "size" to (parts[0].toIntOrNull() ?: 0),
+            "mode" to parts[1],
+            "mtime" to parts[2],
+        )
+    }
+
+    private fun readDocumentBytes(uri: String): ByteArray =
+        contentResolver.openInputStream(Uri.parse(uri))?.use { it.readBytes() }
+            ?: throw IOException("Unable to read the selected document.")
+
+    private fun writeDocumentBytes(uri: String, bytes: ByteArray) {
+        val output = contentResolver.openOutputStream(Uri.parse(uri), "wt")
+            ?: throw IOException("Unable to write to the selected document.")
+        output.use { it.write(bytes) }
+    }
+
+    private fun pushLocalShell(uri: String, path: String) {
+        val input = readDocumentBytes(uri)
+        runLocalCommand("cat > ${backend.shellQuote(path)}", input)
+    }
+
+    private fun pullLocalShell(path: String, uri: String) {
+        val bytes = runLocalCommand("cat ${backend.shellQuote(path)}")
+        writeDocumentBytes(uri, bytes)
+    }
+
+    private fun deleteLocalShell(path: String) {
+        runLocalCommand("rm -rf ${backend.shellQuote(path)}")
+    }
+
+    private fun createLocalDirectoryShell(path: String) {
+        runLocalCommand("mkdir -p ${backend.shellQuote(path)}")
+    }
+
+    private fun renameLocalShell(from: String, to: String) {
+        runLocalCommand(
+            "mv ${backend.shellQuote(from)} ${backend.shellQuote(to)}",
+        )
+    }
     private fun pickDocument(call: MethodCall, result: MethodChannel.Result) {
         if (pendingDocumentResult != null) {
             result.error("PICKER_BUSY", "A document picker is already open.", null)
@@ -332,39 +544,6 @@ class MainActivity : FlutterActivity(), MethodChannel.MethodCallHandler,
                 "rootAvailable" to rootAvailable,
             )
             mainHandler.post { result.success(capabilities) }
-        }
-    }
-
-    private fun requestLocalFileAccess(result: MethodChannel.Result) {
-        if (
-            Build.VERSION.SDK_INT < Build.VERSION_CODES.R ||
-            Environment.isExternalStorageManager()
-        ) {
-            result.success(true)
-            return
-        }
-        if (pendingFileAccessResult != null) {
-            result.error(
-                "FILE_ACCESS_REQUEST_PENDING",
-                "A storage access request is already open.",
-                null,
-            )
-            return
-        }
-        pendingFileAccessResult = result
-        try {
-            val intent = Intent(
-                Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
-                Uri.parse("package:$packageName"),
-            )
-            startActivityForResult(intent, FILE_ACCESS_REQUEST_CODE)
-        } catch (error: Exception) {
-            pendingFileAccessResult = null
-            result.error(
-                "FILE_ACCESS_REQUEST_FAILED",
-                error.message ?: "Unable to open storage access settings.",
-                null,
-            )
         }
     }
 

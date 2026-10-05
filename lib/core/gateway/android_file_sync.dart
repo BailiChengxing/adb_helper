@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:adb_helper/core/model/device.dart';
 import 'package:flutter/services.dart';
 
@@ -12,11 +14,12 @@ class AndroidFileSync implements FileSync {
 
   @override
   Future<List<FileEntry>> list(String path) async {
-    await _ensureLocalFileAccess(path);
-    final values = await _commands.invokeListMethod<Object?>(
-      'listFiles',
-      {..._sessionArguments, 'path': path},
-    );
+    final values = await _commands
+        .invokeListMethod<Object?>(
+          'listFiles',
+          {..._sessionArguments, 'path': path},
+        )
+        .timeout(const Duration(seconds: 30));
     return (values ?? const [])
         .map((value) {
           final entry = Map<Object?, Object?>.from(value! as Map);
@@ -38,7 +41,6 @@ class AndroidFileSync implements FileSync {
     String remote,
     ProgressSink onProgress,
   ) async {
-    await _ensureLocalFileAccess(remote);
     onProgress(0, 'Uploading');
     await _commands.invokeMethod<void>('pushFile', {
       ..._sessionArguments,
@@ -54,7 +56,6 @@ class AndroidFileSync implements FileSync {
     String documentUri,
     ProgressSink onProgress,
   ) async {
-    await _ensureLocalFileAccess(remote);
     onProgress(0, 'Downloading');
     await _commands.invokeMethod<void>('pullFile', {
       ..._sessionArguments,
@@ -66,26 +67,21 @@ class AndroidFileSync implements FileSync {
 
   @override
   Future<void> delete(String path) async {
-    await _ensureLocalFileAccess(path);
     await _invoke('deleteFile', {'path': path});
   }
 
   @override
   Future<void> mkdir(String path) async {
-    await _ensureLocalFileAccess(path);
     await _invoke('createDirectory', {'path': path});
   }
 
   @override
   Future<void> rename(String from, String to) async {
-    await _ensureLocalFileAccess(from);
-    await _ensureLocalFileAccess(to);
     await _invoke('renameFile', {'from': from, 'to': to});
   }
 
   @override
   Future<FileStat> stat(String path) async {
-    await _ensureLocalFileAccess(path);
     final value = await _commands.invokeMapMethod<Object?, Object?>(
       'statFile',
       {..._sessionArguments, 'path': path},
@@ -98,26 +94,6 @@ class AndroidFileSync implements FileSync {
       mode: value['mode']! as String,
       mtime: value['mtime']! as String,
     );
-  }
-
-  Future<void> _ensureLocalFileAccess(String path) async {
-    if (_spec.transport != Transport.local ||
-        !(path == '/storage/emulated/0' ||
-            path.startsWith('/storage/emulated/0/') ||
-            path == '/sdcard' ||
-            path.startsWith('/sdcard/'))) {
-      return;
-    }
-    final granted = await _commands.invokeMethod<bool>(
-      'requestLocalFileAccess',
-    );
-    if (granted != true) {
-      throw PlatformException(
-        code: 'FILE_ACCESS_DENIED',
-        message:
-            'Allow all-files access for ADB Helper to browse internal storage, then retry.',
-      );
-    }
   }
 
   Future<void> _invoke(String method, Map<String, Object?> arguments) async {

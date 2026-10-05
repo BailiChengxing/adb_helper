@@ -17,12 +17,14 @@ import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
 import android.net.wifi.WifiManager
 import android.net.Uri
+import android.view.Surface
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.os.Build
 import io.github.muntashirakon.adb.AdbConnection as WirelessAdbConnection
 import io.github.muntashirakon.adb.PairingConnectionCtx
 import java.io.File
+import java.io.ByteArrayInputStream
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
 import java.io.DataInputStream
@@ -67,6 +69,7 @@ class AndroidAdbTransport(
 
     private val usbManager = context.getSystemService(UsbManager::class.java)
     private val nsdManager = context.getSystemService(NsdManager::class.java)
+
 
     fun discover(): List<Map<String, String>> {
         val result = mutableListOf(
@@ -151,7 +154,7 @@ class AndroidAdbTransport(
             .setCertificate(key.certificate)
             .setDeviceName("adb_helper")
             .build()
-        if (!connection.connect(10, TimeUnit.SECONDS, false)) {
+        if (!connection.connect(30, TimeUnit.SECONDS, false)) {
             connection.close()
             throw IOException("ADB connection failed. Pair the device first or verify its IP and port.")
         }
@@ -572,11 +575,10 @@ class AndroidAdbTransport(
         }
     }
 
-    private fun <T> withAdbConnection(
+    private fun openAdbConnection(
         transport: String,
         serial: String,
-        operation: (WirelessAdbConnection) -> T,
-    ): T {
+    ): AdbConnectionHandle {
         val handle = when (transport) {
             "wireless" -> {
                 val endpoint = AdbProtocolSpec.parseWirelessEndpoint(serial)
@@ -595,12 +597,70 @@ class AndroidAdbTransport(
                 AdbConnectionHandle(connection) { connection.close() }
             }
             "otg" -> openOtgConnection(serial)
-            else -> throw IllegalArgumentException("File and application operations require a wireless or USB ADB device.")
+            else -> throw IllegalArgumentException(
+                "Scrcpy mirroring requires a wireless or USB ADB device.",
+            )
         }
+        return handle
+    }
+
+    private fun <T> withAdbConnection(
+        transport: String,
+        serial: String,
+        operation: (WirelessAdbConnection) -> T,
+    ): T {
+        val handle = openAdbConnection(transport, serial)
         return try {
             operation(handle.connection)
         } finally {
             handle.close()
+        }
+    }
+
+    fun startScrcpy(
+        transport: String,
+        serial: String,
+        serverBytes: ByteArray,
+        surface: Surface,
+    ): ScrcpyMirrorSession {
+        val handle = openAdbConnection(transport, serial)
+        var started = false
+        try {
+            pushStream(
+                handle.connection,
+                ByteArrayInputStream(serverBytes),
+                SCRCPY_REMOTE_PATH,
+            )
+            shellChecked(
+                handle.connection,
+                "pkill -f com.genymobile.scrcpy.Server >/dev/null 2>&1 || true",
+            )
+            val serverShell = handle.connection.open(
+                "shell:CLASSPATH=$SCRCPY_REMOTE_PATH app_process / " +
+                    "com.genymobile.scrcpy.Server 4.1 audio=false control=false " +
+                    "tunnel_forward=true",
+            )
+            Thread.sleep(250)
+            val videoStream = handle.connection.open(SCRCPY_LOCAL_DESTINATION)
+            val session = ScrcpyMirrorSession(
+                videoStream.openInputStream(),
+                surface,
+            ) {
+                try {
+                    videoStream.close()
+                } finally {
+                    try {
+                        serverShell.close()
+                    } finally {
+                        handle.close()
+                    }
+                }
+            }
+            session.start()
+            started = true
+            return session
+        } finally {
+            if (!started) handle.close()
         }
     }
 
@@ -1434,6 +1494,8 @@ class AndroidAdbTransport(
     )
 
     companion object {
+        private const val SCRCPY_REMOTE_PATH = "/data/local/tmp/scrcpy-server.jar"
+        private const val SCRCPY_LOCAL_DESTINATION = "localabstract:scrcpy"
         private const val PREFS = "wireless_adb"
         private const val USB_TRANSFER_TIMEOUT_MS = 1_000
         private const val LEGACY_ADB_PORT = 5555

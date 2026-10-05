@@ -205,6 +205,25 @@ abstract interface class DeviceToolsGateway {
   Future<void> screenOff(SessionSpec spec);
 }
 
+class MirrorSession {
+  const MirrorSession({
+    required this.sessionId,
+    required this.textureId,
+    required this.width,
+    required this.height,
+  });
+
+  final String sessionId;
+  final int textureId;
+  final int width;
+  final int height;
+}
+
+abstract interface class MirrorGateway {
+  Future<MirrorSession> start(SessionSpec spec);
+  Future<void> stop(String sessionId);
+}
+
 class SessionState {
   const SessionState({
     required this.id,

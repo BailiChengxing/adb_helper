@@ -496,10 +496,6 @@ class _DeviceCard extends ConsumerWidget {
   }
 
   void _selectAction(BuildContext context, String action) {
-    if (action == 'mirror') {
-      _showMirrorNotice(context);
-      return;
-    }
     final uri = Uri(
       path: '/devices/$action',
       queryParameters: {
@@ -518,24 +514,6 @@ class _DeviceCard extends ConsumerWidget {
       Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
     ],
   );
-
-  Future<void> _showMirrorNotice(BuildContext context) async {
-    final l10n = AppLocalizations.of(context);
-    await showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        icon: const Icon(Icons.cast),
-        title: Text(l10n.mirror),
-        content: Text(l10n.mirrorNotAvailable),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n.confirm),
-          ),
-        ],
-      ),
-    );
-  }
 
   IconData _transportIcon(Transport transport) => switch (transport) {
     Transport.local => Icons.phone_android,

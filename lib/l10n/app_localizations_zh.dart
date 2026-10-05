@@ -586,6 +586,21 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get installApks => '安装 APKS';
+
+  @override
+  String get mirrorStarting => '正在启动 scrcpy 镜像…';
+
+  @override
+  String get mirrorReady => 'scrcpy 镜像已就绪';
+
+  @override
+  String get mirrorFailed => '无法启动镜像';
+
+  @override
+  String get startMirror => '启动镜像';
+
+  @override
+  String get stopMirror => '停止镜像';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -1171,4 +1186,19 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get installApks => '安裝 APKS';
+
+  @override
+  String get mirrorStarting => '正在啟動 scrcpy 鏡像…';
+
+  @override
+  String get mirrorReady => 'scrcpy 鏡像已就緒';
+
+  @override
+  String get mirrorFailed => '無法啟動鏡像';
+
+  @override
+  String get startMirror => '啟動鏡像';
+
+  @override
+  String get stopMirror => '停止鏡像';
 }

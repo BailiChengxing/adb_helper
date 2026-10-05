@@ -9,6 +9,7 @@ import 'package:adb_helper/core/settings/app_settings.dart';
 import 'package:adb_helper/features/devices/devices_screen.dart';
 import 'package:adb_helper/features/devices/device_info_screen.dart';
 import 'package:adb_helper/features/devices/device_tools_screen.dart';
+import 'package:adb_helper/features/devices/mirror_screen.dart';
 import 'package:adb_helper/features/devices/fastboot_sideload_screen.dart';
 import 'package:adb_helper/features/apps/apps_screen.dart';
 import 'package:adb_helper/features/about/about_screen.dart';
@@ -65,6 +66,12 @@ final router = GoRouter(
                 GoRoute(
                   path: 'tools',
                   builder: (context, state) => DeviceToolsScreen(
+                    device: _deviceFromRoute(state),
+                  ),
+                ),
+                GoRoute(
+                  path: 'mirror',
+                  builder: (context, state) => MirrorScreen(
                     device: _deviceFromRoute(state),
                   ),
                 ),

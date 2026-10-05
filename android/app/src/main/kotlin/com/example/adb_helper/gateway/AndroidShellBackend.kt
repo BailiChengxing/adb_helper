@@ -2,6 +2,7 @@ package com.example.adb_helper.gateway
 
 import com.topjohnwu.superuser.Shell
 import rikka.shizuku.Shizuku
+import java.io.ByteArrayOutputStream
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.nio.charset.StandardCharsets
@@ -112,6 +113,65 @@ class AndroidShellBackend(
         return exitCode
     }
 
+    fun runCaptured(
+        mode: TransportMode,
+        command: String,
+        workingDir: String?,
+        input: ByteArray? = null,
+    ): CapturedCommand {
+        if (mode == TransportMode.ROOT && !Shell.getShell().isRoot) {
+            throw IllegalStateException("Root access is not available on this device.")
+        }
+        val process = when (mode) {
+            TransportMode.LOCAL -> ProcessBuilder(mode.executable, "-c", command)
+                .directory(workingDirectory(workingDir))
+                .start()
+            TransportMode.SHIZUKU -> Shizuku.newProcess(
+                arrayOf(mode.executable, "-c", command),
+                emptyArray(),
+                workingDir,
+            )
+            TransportMode.ROOT -> ProcessBuilder(mode.executable, "-c", command)
+                .directory(workingDirectory(workingDir))
+                .start()
+            else -> error("Unsupported transport.")
+        }
+
+        if (input != null) {
+            Thread {
+                try {
+                    process.outputStream.use { it.write(input) }
+                } catch (_: Exception) {
+                }
+            }.apply { isDaemon = true; start() }
+        } else {
+            try {
+                process.outputStream.close()
+            } catch (_: Exception) {
+            }
+        }
+
+        val stderr = ByteArrayOutputStream()
+        val stderrThread = Thread {
+            try {
+                process.errorStream.use { it.copyTo(stderr) }
+            } catch (_: Exception) {
+            }
+        }.apply { isDaemon = true; start() }
+
+        val stdout = process.inputStream.readBytes()
+        val exitCode = process.waitFor()
+        stderrThread.join(1_000)
+        return CapturedCommand(exitCode, stdout + stderr.toByteArray())
+    }
+
+    fun shellQuote(value: String): String =
+        "'" + value.replace("'", "'\\''") + "'"
+
+    data class CapturedCommand(
+        val exitCode: Int,
+        val output: ByteArray,
+    )
     private fun startShell(mode: TransportMode, workingDir: String?): Process {
         if (mode == TransportMode.ROOT && !Shell.getShell().isRoot) {
             throw IllegalStateException("Root access is not available on this device.")

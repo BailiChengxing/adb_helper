@@ -602,4 +602,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get installApks => 'Install APKS';
+
+  @override
+  String get mirrorStarting => 'Starting scrcpy mirror…';
+
+  @override
+  String get mirrorReady => 'Scrcpy mirror is ready';
+
+  @override
+  String get mirrorFailed => 'Unable to start the mirror';
+
+  @override
+  String get startMirror => 'Start mirror';
+
+  @override
+  String get stopMirror => 'Stop mirror';
 }

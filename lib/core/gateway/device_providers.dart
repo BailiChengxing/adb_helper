@@ -38,3 +38,21 @@ final deviceToolsGatewayProvider = Provider<DeviceToolsGateway>((ref) {
       ? ShellDeviceToolsGateway(ref.watch(deviceGatewayProvider))
       : DesktopDeviceToolsGateway();
 });
+final mirrorGatewayProvider = Provider<MirrorGateway>((ref) {
+  final gateway = ref.watch(deviceGatewayProvider);
+  return gateway is AndroidDeviceGateway
+      ? AndroidMirrorGateway(gateway)
+      : _UnsupportedMirrorGateway();
+});
+
+class _UnsupportedMirrorGateway implements MirrorGateway {
+  @override
+  Future<MirrorSession> start(SessionSpec spec) => Future.error(
+    UnsupportedError(
+      'Scrcpy mirroring is currently available on Android builds only.',
+    ),
+  );
+
+  @override
+  Future<void> stop(String sessionId) async {}
+}
