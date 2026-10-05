@@ -153,6 +153,30 @@ abstract class AppLocalizations {
   /// **'Connect'**
   String get connect;
 
+  /// No description provided for @checkingConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking connection…'**
+  String get checkingConnection;
+
+  /// No description provided for @connectionEstablished.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected'**
+  String get connectionEstablished;
+
+  /// No description provided for @connectionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection failed'**
+  String get connectionFailed;
+
+  /// No description provided for @connectFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect to this device before using its features.'**
+  String get connectFirst;
+
   /// No description provided for @pairWireless.
   ///
   /// In en, this message translates to:

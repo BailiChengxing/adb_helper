@@ -153,6 +153,7 @@ class AndroidAdbTransport(
             .setPrivateKey(key.privateKey)
             .setCertificate(key.certificate)
             .setDeviceName("adb_helper")
+            .setApi(Build.VERSION.SDK_INT)
             .build()
         if (!connection.connect(30, TimeUnit.SECONDS, false)) {
             connection.close()
@@ -582,27 +583,268 @@ class AndroidAdbTransport(
         val handle = when (transport) {
             "wireless" -> {
                 val endpoint = AdbProtocolSpec.parseWirelessEndpoint(serial)
-                val key = wirelessKeyMaterial()
-                val connection = WirelessAdbConnection.Builder()
-                    .setHost(endpoint.first)
-                    .setPort(endpoint.second)
-                    .setPrivateKey(key.privateKey)
-                    .setCertificate(key.certificate)
-                    .setDeviceName("adb_helper")
-                    .build()
-                if (!connection.connect(30, TimeUnit.SECONDS, false)) {
-                    connection.close()
-                    throw IOException("Wireless ADB authorization timed out.")
-                }
+                val connection = connectWirelessAdb(endpoint.first, endpoint.second)
                 AdbConnectionHandle(connection) { connection.close() }
             }
             "otg" -> openOtgConnection(serial)
             else -> throw IllegalArgumentException(
-                "Scrcpy mirroring requires a wireless or USB ADB device.",
+                "Unsupported transport '$transport' for remote ADB operations.",
             )
         }
         return handle
     }
+
+    /**
+     * Opens and authorizes a fresh ADB connection to a wireless endpoint.
+     *
+     * The reachability probe keeps "the device is not listening" and "the device accepted TCP but
+     * never answered the ADB handshake" distinguishable: without it both look like a silent stall
+     * that runs out the authorization timeout.
+     */
+    private fun connectWirelessAdb(host: String, port: Int): WirelessAdbConnection {
+        val key = wirelessKeyMaterial()
+        val connection = WirelessAdbConnection.Builder()
+            .setHost(host)
+            .setPort(port)
+            .setPrivateKey(key.privateKey)
+            .setCertificate(key.certificate)
+            .setDeviceName("adb_helper")
+            .setApi(Build.VERSION.SDK_INT)
+            .build()
+        if (!connection.connect(AUTHORIZATION_TIMEOUT_SECONDS, TimeUnit.SECONDS, false)) {
+            // The reachability probe only ever explains a failure here. Gating the connection on
+            // it made every wireless operation depend on a bare TCP connect succeeding, so a probe
+            // that disagreed with libadb took the whole feature down with a misleading message.
+            val reachable = probeTcp(host, port)
+            connection.close()
+            throw IOException(
+                if (reachable) {
+                    "$host:$port accepted the connection but never completed the ADB handshake. " +
+                        "Approve the debugging authorization prompt on the target device, then retry."
+                } else {
+                    "$host:$port did not accept a TCP connection. Check that the target device is " +
+                        "on the same network and that ADB over TCP is listening on that port."
+                },
+            )
+        }
+        return connection
+    }
+
+    private fun probeTcp(host: String, port: Int): Boolean =
+        try {
+            Socket().use { it.connect(InetSocketAddress(host, port), TCP_PROBE_TIMEOUT_MS) }
+            true
+        } catch (_: IOException) {
+            false
+        }
+
+    /**
+     * Runs a real, end-to-end ADB handshake so callers can tell "the port is open" apart from
+     * "this device is actually usable", and reports what the peer did when it fails.
+     */
+    fun verifyConnection(transport: String, serial: String): Map<String, Any?> =
+        when (transport) {
+            "wireless" -> verifyWirelessConnection(serial)
+            "otg" -> verifyOtgConnection(serial)
+            else -> mapOf("ok" to true, "message" to "A local transport needs no connection step.")
+        }
+
+    private fun verifyWirelessConnection(serial: String): Map<String, Any?> {
+        val (host, port) = AdbProtocolSpec.parseWirelessEndpoint(serial)
+        return try {
+            connectWirelessAdb(host, port).use { connection ->
+                connection.open(AdbProtocolSpec.shellDestination()).close()
+            }
+            mapOf("ok" to true, "message" to "Connected to $serial.")
+        } catch (error: Exception) {
+            mapOf(
+                "ok" to false,
+                "message" to (error.message ?: "The ADB handshake failed."),
+                "diagnostic" to describeHandshakeProbe(host, port),
+            )
+        }
+    }
+
+    /**
+     * Probes the USB link first and only then exercises the loopback tunnel.
+     *
+     * Opening and claiming the ADB interface is the one step that can make the target re-enumerate
+     * its USB port, so it happens exactly once while diagnosing: the raw CNXN probe runs on the
+     * same claimed interface the tunnel would have used. When the probe says the endpoints carry
+     * nothing, there is no point testing anything above them.
+     */
+    private fun verifyOtgConnection(serial: String): Map<String, Any?> {
+        val (linkHealthy, detail) = probeUsbLink(serial)
+        if (!linkHealthy) {
+            return mapOf("ok" to false, "message" to detail)
+        }
+        return try {
+            val handle = openOtgConnection(serial)
+            try {
+                handle.connection.open(AdbProtocolSpec.shellDestination()).close()
+            } finally {
+                handle.close()
+            }
+            mapOf("ok" to true, "message" to "Connected to $serial.")
+        } catch (error: Exception) {
+            mapOf(
+                "ok" to false,
+                "message" to (error.message ?: "The USB ADB handshake failed."),
+                "diagnostic" to
+                    "The USB link itself is fine — $detail — so the fault is above it, in the " +
+                    "loopback bridge or the ADB handshake.",
+            )
+        }
+    }
+
+    /**
+     * Sends a hand-built CNXN to the peer and describes whatever comes back.
+     *
+     * Two very different faults look identical from the outside: a peer that is not adbd at all
+     * (silent, or speaking a different protocol) and a working adbd that never accepted our
+     * handshake. The first four bytes of the reply separate them, because adbd answers A_AUTH
+     * immediately on receiving a well-formed CNXN — user approval only gates the RSA key, not the
+     * initial reply.
+     */
+    private fun describeHandshakeProbe(host: String, port: Int): String {
+        try {
+            Socket().use { socket ->
+                socket.connect(InetSocketAddress(host, port), TCP_PROBE_TIMEOUT_MS)
+                socket.soTimeout = HANDSHAKE_PROBE_TIMEOUT_MS
+                val payload = "host::features=shell_v2,cmd,stat_v2,ls_v2"
+                    .toByteArray(StandardCharsets.UTF_8)
+                socket.getOutputStream().apply {
+                    write(adbMessage(A_CNXN, ADB_VERSION_SKIP_CHECKSUM, ADB_MAX_DATA, payload))
+                    flush()
+                }
+                val header = ByteArray(ADB_HEADER_LENGTH)
+                try {
+                    DataInputStream(socket.getInputStream()).readFully(header)
+                } catch (_: java.io.EOFException) {
+                    return "The peer closed the socket without answering."
+                } catch (_: java.net.SocketTimeoutException) {
+                    return "The peer accepted the connection but sent nothing back within " +
+                        "${HANDSHAKE_PROBE_TIMEOUT_MS / 1000}s."
+                }
+                return when (val command = asciiAt(header, 0)) {
+                    "AUTH" -> "adbd answered AUTH, so a daemon is listening but our handshake " +
+                        "was not accepted."
+                    "CNXN" -> "adbd answered CNXN, so the peer is a working ADB daemon."
+                    else -> "The peer answered \"$command\", which is not an ADB command."
+                }
+            }
+        } catch (error: Exception) {
+            return "The probe could not complete: ${error.message ?: error.javaClass.simpleName}"
+        }
+    }
+
+    /**
+     * Sends a hand-built CNXN straight down the USB bulk endpoints and reports whether the target
+     * answered, bypassing both the loopback bridge and libadb.
+     *
+     * The loopback tunnel has four places that fail silently — USB permission, openDevice,
+     * claimInterface, and the bulk transfers themselves — and every one of them looks identical
+     * from the outside: a Connect button that spins and then fails. Talking to the endpoints
+     * directly is what separates "the cable is not carrying ADB bytes" from "adbd answered and
+     * rejected us". The pair is (link is carrying ADB traffic, human-readable detail).
+     */
+    private fun probeUsbLink(identifier: String): Pair<Boolean, String> {
+        val device = findUsbDevice(identifier)
+            ?: return false to "The USB device is no longer in the system's USB device list."
+        val intf = findAdbInterface(device)
+            ?: return false to "The USB device does not expose an ADB interface (0xff/0x42/0x01)."
+        if (!requestUsbPermission(device)) {
+            return false to "USB debugging permission was not granted on this phone."
+        }
+        val usbConnection = usbManager.openDevice(device)
+            ?: return false to "The system refused to open the USB ADB device."
+        try {
+            if (!usbConnection.claimInterface(intf, true)) {
+                return false to
+                    "The USB ADB interface could not be claimed — another process may hold it."
+            }
+            val bulkIn = runCatching { findEndpoint(intf, UsbConstants.USB_DIR_IN) }.getOrNull()
+                ?: return false to "The ADB interface has no bulk IN endpoint."
+            val bulkOut = runCatching { findEndpoint(intf, UsbConstants.USB_DIR_OUT) }.getOrNull()
+                ?: return false to "The ADB interface has no bulk OUT endpoint."
+
+            val payload = "host::features=shell_v2,cmd,stat_v2,ls_v2\u0000"
+                .toByteArray(StandardCharsets.UTF_8)
+            val packet = adbMessage(A_CNXN, ADB_VERSION_SKIP_CHECKSUM, ADB_MAX_DATA, payload)
+            val written = usbConnection.bulkTransfer(
+                bulkOut,
+                packet,
+                packet.size,
+                USB_TRANSFER_TIMEOUT_MS,
+            )
+            if (written != packet.size) {
+                return false to
+                    "Writing the CNXN packet to the USB bulk endpoint failed " +
+                    "(bulkTransfer wrote $written of ${packet.size} bytes)."
+            }
+
+            val header = ByteArray(ADB_HEADER_LENGTH)
+            val deadline = System.nanoTime() +
+                TimeUnit.MILLISECONDS.toNanos(HANDSHAKE_PROBE_TIMEOUT_MS.toLong())
+            var received = 0
+            while (received < header.size && System.nanoTime() < deadline) {
+                val read = usbConnection.bulkTransfer(
+                    bulkIn,
+                    header,
+                    received,
+                    header.size - received,
+                    USB_TRANSFER_TIMEOUT_MS,
+                )
+                if (read > 0) received += read
+            }
+            if (received < header.size) {
+                return false to
+                    "The USB link took the CNXN packet but the target sent nothing back within " +
+                    "${HANDSHAKE_PROBE_TIMEOUT_MS / 1000}s " +
+                    "($received of ${header.size} header bytes arrived)."
+            }
+            return when (val command = asciiAt(header, 0)) {
+                "AUTH" -> true to "the target's adbd answered AUTH over USB"
+                "CNXN" -> true to "the target's adbd answered CNXN over USB"
+                else -> false to "The USB link returned \"$command\", which is not an ADB command."
+            }
+        } catch (error: Exception) {
+            return false to
+                "The USB probe could not complete: ${error.message ?: error.javaClass.simpleName}"
+        } finally {
+            runCatching { usbConnection.releaseInterface(intf) }
+            runCatching { usbConnection.close() }
+        }
+    }
+
+    /**
+     * Resolves a device across a re-enumeration. The bus path in [UsbDevice.getDeviceName]
+     * changes every time the device is detached, which is exactly what the target does when its
+     * USB role settles, so the saved serial can point at a slot that no longer exists.
+     */
+    private fun findUsbDevice(identifier: String): UsbDevice? =
+        usbManager.deviceList.values.firstOrNull { it.deviceName == identifier }
+            ?: usbManager.deviceList.values.firstOrNull { it.deviceId.toString() == identifier }
+
+    private fun adbMessage(
+        command: Int,
+        arg0: Int,
+        arg1: Int,
+        payload: ByteArray,
+    ): ByteArray = java.nio.ByteBuffer
+        .allocate(ADB_HEADER_LENGTH + payload.size)
+        .order(java.nio.ByteOrder.LITTLE_ENDIAN)
+        .putInt(command)
+        .putInt(arg0)
+        .putInt(arg1)
+        .putInt(payload.size)
+        .putInt(0) // The checksum field is unused by the modern protocol.
+        .putInt(command xor -1)
+        .put(payload)
+        .array()
+
+    private fun asciiAt(bytes: ByteArray, offset: Int): String =
+        String(bytes, offset, 4, StandardCharsets.US_ASCII)
 
     private fun <T> withAdbConnection(
         transport: String,
@@ -665,7 +907,7 @@ class AndroidAdbTransport(
     }
 
     private fun openOtgConnection(deviceName: String): AdbConnectionHandle {
-        val device = usbManager.deviceList.values.firstOrNull { it.deviceName == deviceName }
+        val device = findUsbDevice(deviceName)
             ?: throw IOException("The USB ADB device is no longer connected.")
         val intf = findAdbInterface(device)
             ?: throw IOException("The USB device does not expose an ADB interface.")
@@ -712,6 +954,7 @@ class AndroidAdbTransport(
                 .setPrivateKey(key.privateKey)
                 .setCertificate(key.certificate)
                 .setDeviceName("adb_helper")
+                .setApi(Build.VERSION.SDK_INT)
                 .build()
                 .also {
                     if (!it.connect(30, TimeUnit.SECONDS, false)) {
@@ -736,7 +979,30 @@ class AndroidAdbTransport(
         }
     }
 
+    /** Runs a command on a remote device and returns its exit code. */
+    fun execOnce(
+        transport: String,
+        serial: String,
+        command: String,
+        workingDir: String?,
+    ): Int = withAdbConnection(transport, serial) { connection ->
+        val prefix = if (workingDir.isNullOrBlank()) "" else "cd ${shellQuote(workingDir)} && "
+        runShell(connection, "$prefix$command").second
+    }
+
     private fun shellChecked(connection: WirelessAdbConnection, command: String): String {
+        val (output, exitCode) = runShell(connection, command)
+        if (exitCode != 0) {
+            throw IOException(output.ifBlank { "ADB shell command failed with exit code $exitCode." })
+        }
+        return output
+    }
+
+    /** Runs [command] and returns its trimmed output alongside the remote exit code. */
+    private fun runShell(
+        connection: WirelessAdbConnection,
+        command: String,
+    ): Pair<String, Int> {
         val response = connection.open("shell:$command; echo __ADB_EXIT__\$?")
             .let { stream ->
                 try {
@@ -746,13 +1012,10 @@ class AndroidAdbTransport(
                 }
             }
         val marker = EXIT_CODE.find(response)
-            ?: throw IOException(response.trim().ifBlank { "The ADB shell command returned no status." })
-        val output = response.removeRange(marker.range).trim()
-        val exitCode = marker.groupValues[1].toInt()
-        if (exitCode != 0) {
-            throw IOException(output.ifBlank { "ADB shell command failed with exit code $exitCode." })
-        }
-        return output
+            ?: throw IOException(
+                response.trim().ifBlank { "The ADB shell command returned no status." },
+            )
+        return response.removeRange(marker.range).trim() to marker.groupValues[1].toInt()
     }
 
     private fun pushStream(
@@ -888,18 +1151,7 @@ class AndroidAdbTransport(
 
     fun openWireless(sessionId: String, serial: String, workingDir: String?): ShellSession {
         val endpoint = AdbProtocolSpec.parseWirelessEndpoint(serial)
-        val key = wirelessKeyMaterial()
-        val connection = WirelessAdbConnection.Builder()
-            .setHost(endpoint.first)
-            .setPort(endpoint.second)
-            .setPrivateKey(key.privateKey)
-            .setCertificate(key.certificate)
-            .setDeviceName("adb_helper")
-            .build()
-        if (!connection.connect(30, TimeUnit.SECONDS, false)) {
-            connection.close()
-            throw IOException("Wireless ADB authorization timed out.")
-        }
+        val connection = connectWirelessAdb(endpoint.first, endpoint.second)
         val stream = try {
             connection.open(AdbProtocolSpec.shellDestination())
         } catch (error: Exception) {
@@ -929,7 +1181,7 @@ class AndroidAdbTransport(
     }
 
     fun openOtg(sessionId: String, deviceName: String, workingDir: String?): ShellSession {
-        val device = usbManager.deviceList.values.firstOrNull { it.deviceName == deviceName }
+        val device = findUsbDevice(deviceName)
             ?: throw IOException("The USB ADB device is no longer connected.")
         val intf = findAdbInterface(device)
             ?: throw IOException("The USB device does not expose an ADB interface.")
@@ -979,6 +1231,7 @@ class AndroidAdbTransport(
                 .setPrivateKey(key.privateKey)
                 .setCertificate(key.certificate)
                 .setDeviceName("adb_helper")
+                .setApi(Build.VERSION.SDK_INT)
                 .build()
                 .also {
                     if (!it.connect(30, TimeUnit.SECONDS, false)) {
@@ -1095,7 +1348,10 @@ class AndroidAdbTransport(
     }
 
     private fun discoverWirelessDevices(): List<Map<String, String>> {
-        val discovered = findWirelessEndpoints(4, TimeUnit.SECONDS)
+        // A failed mDNS scan (denied permission, port busy, NsdManager contention) must not take
+        // down the whole device list — previously saved endpoints are still perfectly usable.
+        val discovered = runCatching { findWirelessEndpoints(4, TimeUnit.SECONDS) }
+            .getOrDefault(emptyList())
         discovered.forEach(::saveWirelessEndpoint)
         val saved = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .all
@@ -1498,6 +1754,13 @@ class AndroidAdbTransport(
         private const val SCRCPY_LOCAL_DESTINATION = "localabstract:scrcpy"
         private const val PREFS = "wireless_adb"
         private const val USB_TRANSFER_TIMEOUT_MS = 1_000
+        private const val AUTHORIZATION_TIMEOUT_SECONDS = 30L
+        private const val TCP_PROBE_TIMEOUT_MS = 4_000
+        private const val HANDSHAKE_PROBE_TIMEOUT_MS = 5_000
+        private const val ADB_HEADER_LENGTH = 24
+        private const val A_CNXN = 0x4e584e43
+        private const val ADB_VERSION_SKIP_CHECKSUM = 0x01000001
+        private const val ADB_MAX_DATA = 1 shl 20
         private const val LEGACY_ADB_PORT = 5555
         private const val MAX_SUBNET_SCAN_HOSTS = 1024L
         private const val SUBNET_SCAN_THREADS = 64

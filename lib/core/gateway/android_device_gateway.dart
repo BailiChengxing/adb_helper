@@ -51,9 +51,14 @@ class AndroidDeviceGateway implements DeviceGateway {
         .toList(growable: false);
   }
 
+  /// Native remote-device calls spend up to 4s probing TCP reachability and up to 30s waiting for
+  /// ADB authorization, so this has to outlast both — otherwise a real backend failure is masked by
+  /// a generic Dart timeout instead of surfacing the native message.
+  static const Duration _remoteOperationTimeout = Duration(seconds: 45);
+
   Future<T> _withTimeout<T>(Future<T> future, String operation) async {
     try {
-      return await future.timeout(const Duration(seconds: 30));
+      return await future.timeout(_remoteOperationTimeout);
     } on TimeoutException {
       throw PlatformException(
         code: 'ANDROID_OPERATION_TIMEOUT',
@@ -110,6 +115,28 @@ class AndroidDeviceGateway implements DeviceGateway {
       id: result['id']! as String,
       label: result['label']! as String,
       transport: Transport.wireless,
+    );
+  }
+
+  @override
+  Future<ConnectionCheck> verifyConnection(SessionSpec spec) async {
+    final result = await _withTimeout(
+      _commands.invokeMapMethod<Object?, Object?>(
+        'verifyConnection',
+        _sessionArguments(spec),
+      ),
+      'Connection check',
+    );
+    if (result == null) {
+      throw PlatformException(
+        code: 'VERIFY_FAILED',
+        message: 'The Android backend did not return a connection result.',
+      );
+    }
+    return ConnectionCheck(
+      ok: result['ok'] == true,
+      message: result['message'] as String? ?? '',
+      diagnostic: result['diagnostic'] as String?,
     );
   }
 

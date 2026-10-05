@@ -77,11 +77,26 @@ class PairingResult {
   final String? serial;
 }
 
+/// Outcome of a real, end-to-end ADB handshake against a device.
+///
+/// Discovery only proves that a port is open, which is not the same thing as the device being
+/// usable, so the workbench asks for this before running anything against a remote device.
+class ConnectionCheck {
+  const ConnectionCheck({required this.ok, required this.message, this.diagnostic});
+
+  final bool ok;
+  final String message;
+
+  /// What the peer actually did when the handshake failed, when the backend could tell.
+  final String? diagnostic;
+}
+
 abstract interface class DeviceGateway {
   Future<List<DeviceRef>> discover();
   Future<List<DeviceRef>> scanLocalNetwork();
   Future<Map<String, String>> deviceInformation(SessionSpec spec);
   Future<PairingResult> pair(PairSpec spec);
+  Future<ConnectionCheck> verifyConnection(SessionSpec spec);
   Future<DeviceRef> connectWireless(String host, int port);
   Future<ShellSession> open(SessionSpec spec);
   Future<int> execOnce(SessionSpec spec, String command);

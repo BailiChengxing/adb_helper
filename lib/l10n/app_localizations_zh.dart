@@ -37,6 +37,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get connect => '连接';
 
   @override
+  String get checkingConnection => '正在检查连接…';
+
+  @override
+  String get connectionEstablished => '已连接';
+
+  @override
+  String get connectionFailed => '连接失败';
+
+  @override
+  String get connectFirst => '请先连接该设备，再使用它的功能。';
+
+  @override
   String get pairWireless => '无线配对';
 
   @override
@@ -633,6 +645,18 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get connect => '連線';
+
+  @override
+  String get checkingConnection => '正在檢查連線…';
+
+  @override
+  String get connectionEstablished => '已連線';
+
+  @override
+  String get connectionFailed => '連線失敗';
+
+  @override
+  String get connectFirst => '請先連線此裝置，再使用它的功能。';
 
   @override
   String get pairWireless => '無線配對';

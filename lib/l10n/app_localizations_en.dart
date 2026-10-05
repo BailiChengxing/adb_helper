@@ -37,6 +37,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get connect => 'Connect';
 
   @override
+  String get checkingConnection => 'Checking connection…';
+
+  @override
+  String get connectionEstablished => 'Connected';
+
+  @override
+  String get connectionFailed => 'Connection failed';
+
+  @override
+  String get connectFirst =>
+      'Connect to this device before using its features.';
+
+  @override
   String get pairWireless => 'Pair over Wi-Fi';
 
   @override

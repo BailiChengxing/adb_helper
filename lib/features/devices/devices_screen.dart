@@ -9,6 +9,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+/// Outcome of the explicit connect step for one device.
+///
+/// Discovery only proves a port is open, so remote devices start out unverified and their feature
+/// menus stay closed until a real ADB handshake has succeeded.
+enum _ConnectionPhase { idle, checking, connected, failed }
+
+class _DeviceConnection {
+  const _DeviceConnection({
+    this.phase = _ConnectionPhase.idle,
+    this.message,
+    this.diagnostic,
+  });
+
+  final _ConnectionPhase phase;
+  final String? message;
+  final String? diagnostic;
+}
+
 class DevicesScreen extends ConsumerStatefulWidget {
   const DevicesScreen({super.key});
 
@@ -25,6 +43,40 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen>
   bool _scanning = false;
   bool _hasScannedNetwork = false;
   List<DeviceRef> _scannedDevices = const [];
+  final Map<String, _DeviceConnection> _connections = {};
+
+  Future<void> _verifyConnection(DeviceRef device) async {
+    setState(() {
+      _connections[device.id] = const _DeviceConnection(
+        phase: _ConnectionPhase.checking,
+      );
+    });
+    try {
+      final result = await ref
+          .read(deviceGatewayProvider)
+          .verifyConnection(
+            SessionSpec(transport: device.transport, serial: device.id),
+          );
+      if (!mounted) return;
+      setState(() {
+        _connections[device.id] = _DeviceConnection(
+          phase: result.ok
+              ? _ConnectionPhase.connected
+              : _ConnectionPhase.failed,
+          message: result.message,
+          diagnostic: result.diagnostic,
+        );
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _connections[device.id] = _DeviceConnection(
+          phase: _ConnectionPhase.failed,
+          message: '$error',
+        );
+      });
+    }
+  }
 
   @override
   void initState() {
@@ -156,6 +208,8 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen>
             child: devicesAsync.when(
               data: (devices) => _DeviceWorkbench(
                 devices: _mergeDevices(devices, _scannedDevices),
+                connections: _connections,
+                onConnect: _verifyConnection,
               ),
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, stack) => _LoadFailure(
@@ -338,9 +392,15 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen>
 }
 
 class _DeviceWorkbench extends ConsumerWidget {
-  const _DeviceWorkbench({required this.devices});
+  const _DeviceWorkbench({
+    required this.devices,
+    required this.connections,
+    required this.onConnect,
+  });
 
   final List<DeviceRef> devices;
+  final Map<String, _DeviceConnection> connections;
+  final Future<void> Function(DeviceRef device) onConnect;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -413,7 +473,12 @@ class _DeviceWorkbench extends ConsumerWidget {
               delegate: SliverChildBuilderDelegate(
                 (context, index) => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
-                  child: _DeviceCard(device: devices[index]),
+                  child: _DeviceCard(
+                    device: devices[index],
+                    connection:
+                        connections[devices[index].id] ?? const _DeviceConnection(),
+                    onConnect: onConnect,
+                  ),
                 ),
                 childCount: devices.length,
               ),
@@ -425,20 +490,37 @@ class _DeviceWorkbench extends ConsumerWidget {
 }
 
 class _DeviceCard extends ConsumerWidget {
-  const _DeviceCard({required this.device});
+  const _DeviceCard({
+    required this.device,
+    required this.connection,
+    required this.onConnect,
+  });
 
   final DeviceRef device;
+  final _DeviceConnection connection;
+  final Future<void> Function(DeviceRef device) onConnect;
+
+  /// Only network and USB transports need an explicit handshake; local transports do not.
+  bool get _requiresConnection => switch (device.transport) {
+    Transport.wireless || Transport.otg || Transport.usb => true,
+    Transport.local || Transport.shizuku || Transport.root => false,
+  };
+
+  bool get _isReachable =>
+      !_requiresConnection || connection.phase == _ConnectionPhase.connected;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
     return Card(
       clipBehavior: Clip.antiAlias,
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: CircleAvatar(
-          backgroundColor:
-              Theme.of(context).colorScheme.primaryContainer,
+          backgroundColor: _isReachable
+              ? scheme.primaryContainer
+              : scheme.surfaceContainerHighest,
           child: Icon(_transportIcon(device.transport)),
         ),
         title: Text(
@@ -456,38 +538,45 @@ class _DeviceCard extends ConsumerWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
+            if (_requiresConnection) _statusLine(context, l10n),
           ],
         ),
-        trailing: PopupMenuButton<String>(
-          tooltip: l10n.deviceActions,
-          onSelected: (action) => _selectAction(context, action),
-          itemBuilder: (context) => [
-            PopupMenuItem(
-              value: 'info',
-              child: _menuEntry(
-                Icons.info_outline,
-                l10n.deviceInformation,
-              ),
-            ),
-            PopupMenuItem(
-              value: 'terminal',
-              child: _menuEntry(Icons.terminal, l10n.terminal),
-            ),
-            PopupMenuItem(
-              value: 'files',
-              child: _menuEntry(Icons.folder_outlined, l10n.files),
-            ),
-            PopupMenuItem(
-              value: 'apps',
-              child: _menuEntry(Icons.apps_outlined, l10n.applications),
-            ),
-            PopupMenuItem(
-              value: 'tools',
-              child: _menuEntry(Icons.build_outlined, l10n.tools),
-            ),
-            PopupMenuItem(
-              value: 'mirror',
-              child: _menuEntry(Icons.cast, l10n.mirror),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_requiresConnection) _connectControl(context, l10n),
+            PopupMenuButton<String>(
+              tooltip: l10n.deviceActions,
+              onSelected: (action) => _selectAction(context, action, l10n),
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: 'info',
+                  child: _menuEntry(
+                    Icons.info_outline,
+                    l10n.deviceInformation,
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'terminal',
+                  child: _menuEntry(Icons.terminal, l10n.terminal),
+                ),
+                PopupMenuItem(
+                  value: 'files',
+                  child: _menuEntry(Icons.folder_outlined, l10n.files),
+                ),
+                PopupMenuItem(
+                  value: 'apps',
+                  child: _menuEntry(Icons.apps_outlined, l10n.applications),
+                ),
+                PopupMenuItem(
+                  value: 'tools',
+                  child: _menuEntry(Icons.build_outlined, l10n.tools),
+                ),
+                PopupMenuItem(
+                  value: 'mirror',
+                  child: _menuEntry(Icons.cast, l10n.mirror),
+                ),
+              ],
             ),
           ],
         ),
@@ -495,7 +584,95 @@ class _DeviceCard extends ConsumerWidget {
     );
   }
 
-  void _selectAction(BuildContext context, String action) {
+  Widget _statusLine(BuildContext context, AppLocalizations l10n) {
+    final scheme = Theme.of(context).colorScheme;
+    return switch (connection.phase) {
+      _ConnectionPhase.idle => const SizedBox.shrink(),
+      _ConnectionPhase.checking => Text(l10n.checkingConnection),
+      _ConnectionPhase.connected => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.check_circle, size: 14, color: scheme.primary),
+          const SizedBox(width: 6),
+          Text(l10n.connectionEstablished),
+        ],
+      ),
+      _ConnectionPhase.failed => InkWell(
+        onTap: () => _showFailure(context, l10n),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.error_outline, size: 14, color: scheme.error),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                l10n.connectionFailed,
+                style: TextStyle(color: scheme.error),
+              ),
+            ),
+          ],
+        ),
+      ),
+    };
+  }
+
+  Widget _connectControl(BuildContext context, AppLocalizations l10n) =>
+      switch (connection.phase) {
+        _ConnectionPhase.checking => const Padding(
+          padding: EdgeInsets.all(12),
+          child: SizedBox.square(
+            dimension: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+        _ConnectionPhase.connected => IconButton(
+          tooltip: l10n.connect,
+          onPressed: () => onConnect(device),
+          icon: Icon(
+            Icons.check_circle,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        ),
+        _ConnectionPhase.idle || _ConnectionPhase.failed => TextButton.icon(
+          onPressed: () => onConnect(device),
+          icon: const Icon(Icons.link),
+          label: Text(l10n.connect),
+        ),
+      };
+
+  void _showFailure(BuildContext context, AppLocalizations l10n) {
+    final details = [
+      if (connection.message?.isNotEmpty ?? false) connection.message!,
+      if (connection.diagnostic?.isNotEmpty ?? false) connection.diagnostic!,
+    ].join('\n\n');
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.connectionFailed),
+        content: SelectableText(
+          details.isEmpty ? l10n.connectionFailed : details,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(l10n.cancel),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _selectAction(
+    BuildContext context,
+    String action,
+    AppLocalizations l10n,
+  ) {
+    if (!_isReachable) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(l10n.connectFirst)));
+      return;
+    }
     final uri = Uri(
       path: '/devices/$action',
       queryParameters: {

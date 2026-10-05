@@ -109,6 +109,10 @@ class FakeDeviceGateway implements DeviceGateway {
       };
 
   @override
+  Future<ConnectionCheck> verifyConnection(SessionSpec spec) async =>
+      const ConnectionCheck(ok: true, message: 'Demo devices are always reachable.');
+
+  @override
   Future<PairingResult> pair(PairSpec spec) async {
     final serial = '${spec.host}:5555';
     if (_devices.every((device) => device.id != serial)) {

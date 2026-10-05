@@ -19,7 +19,7 @@ class AndroidFileSync implements FileSync {
           'listFiles',
           {..._sessionArguments, 'path': path},
         )
-        .timeout(const Duration(seconds: 30));
+        .timeout(const Duration(seconds: 45));
     return (values ?? const [])
         .map((value) {
           final entry = Map<Object?, Object?>.from(value! as Map);

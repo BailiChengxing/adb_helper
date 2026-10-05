@@ -1,5 +1,6 @@
 package com.example.adb_helper
 
+import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.SurfaceTexture
 import android.content.Intent
@@ -44,6 +45,7 @@ class MainActivity : FlutterActivity(), MethodChannel.MethodCallHandler,
     private var pendingDocumentResult: MethodChannel.Result? = null
     private var pendingFileAccessResult: MethodChannel.Result? = null
     private var pendingShizukuPermissionCallback: ((Boolean) -> Unit)? = null
+    private var pendingDiscoveryPermissionCallback: ((Boolean) -> Unit)? = null
     private val shizukuPermissionListener =
         Shizuku.OnRequestPermissionResultListener { requestCode, grantResult ->
             if (requestCode == SHIZUKU_REQUEST_CODE) {
@@ -71,6 +73,9 @@ class MainActivity : FlutterActivity(), MethodChannel.MethodCallHandler,
             "scanLocalNetwork" -> scanLocalNetwork(result)
             "pair" -> pair(call, result)
             "connectWireless" -> connectWireless(call, result)
+            "verifyConnection" -> withAdbArgs(call, result) { transport, serial, _ ->
+                adbTransport.verifyConnection(transport, serial)
+            }
             "openSession" -> openSession(call, result)
             "writeStdin" -> writeStdin(call, result)
             "closeSession" -> closeSession(call, result)
@@ -571,31 +576,75 @@ class MainActivity : FlutterActivity(), MethodChannel.MethodCallHandler,
     private fun Map<String, Any?>.requiredString(key: String): String =
         this[key] as? String ?: throw IllegalArgumentException("A $key value is required.")
 
+    /**
+     * Asks for the permission mDNS discovery needs — NEARBY_WIFI_DEVICES on Android 13 and above,
+     * fine location below that — and reports the answer without acting on it.
+     *
+     * Without it [android.net.nsd.NsdManager] reports every discovery as failed, so mDNS yields
+     * nothing. That is a degraded list, not a broken one: the saved wireless endpoints and the
+     * local and USB devices are still usable, so callers must not refuse the whole request.
+     */
+    private fun ensureDiscoveryPermission(onResult: (Boolean) -> Unit) {
+        val permission = if (Build.VERSION.SDK_INT >= 33) {
+            Manifest.permission.NEARBY_WIFI_DEVICES
+        } else {
+            Manifest.permission.ACCESS_FINE_LOCATION
+        }
+        if (checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED) {
+            onResult(true)
+            return
+        }
+        pendingDiscoveryPermissionCallback = onResult
+        requestPermissions(arrayOf(permission), DISCOVERY_PERMISSION_REQUEST_CODE)
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray,
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode != DISCOVERY_PERMISSION_REQUEST_CODE) return
+        val callback = pendingDiscoveryPermissionCallback
+        pendingDiscoveryPermissionCallback = null
+        val granted = grantResults.isNotEmpty() &&
+            grantResults[0] == PackageManager.PERMISSION_GRANTED
+        mainHandler.post { callback?.invoke(granted) }
+    }
+
     private fun discover(result: MethodChannel.Result) {
-        executor.execute {
-            try {
-                val devices = adbTransport.discover()
-                mainHandler.post { result.success(devices) }
-            } catch (error: Exception) {
-                mainHandler.post {
-                    result.error("DISCOVERY_FAILED", error.message ?: "Unable to discover ADB devices.", null)
+        ensureDiscoveryPermission {
+            executor.execute {
+                try {
+                    val devices = adbTransport.discover()
+                    mainHandler.post { result.success(devices) }
+                } catch (error: Exception) {
+                    mainHandler.post {
+                        result.error(
+                            "DISCOVERY_FAILED",
+                            error.message ?: "Unable to discover ADB devices.",
+                            null,
+                        )
+                    }
                 }
             }
         }
     }
 
     private fun scanLocalNetwork(result: MethodChannel.Result) {
-        executor.execute {
-            try {
-                val devices = adbTransport.scanLocalNetwork()
-                mainHandler.post { result.success(devices) }
-            } catch (error: Exception) {
-                mainHandler.post {
-                    result.error(
-                        "NETWORK_SCAN_FAILED",
-                        error.message ?: "Unable to scan the local network.",
-                        null,
-                    )
+        ensureDiscoveryPermission {
+            executor.execute {
+                try {
+                    val devices = adbTransport.scanLocalNetwork()
+                    mainHandler.post { result.success(devices) }
+                } catch (error: Exception) {
+                    mainHandler.post {
+                        result.error(
+                            "NETWORK_SCAN_FAILED",
+                            error.message ?: "Unable to scan the local network.",
+                            null,
+                        )
+                    }
                 }
             }
         }
@@ -710,8 +759,13 @@ class MainActivity : FlutterActivity(), MethodChannel.MethodCallHandler,
 
     private fun execOnce(call: MethodCall, result: MethodChannel.Result) {
         val args = call.arguments<Map<String, Any?>>() ?: emptyMap()
-        val mode = TransportMode.fromWire(args["transport"] as? String)
-            ?: return result.error("INVALID_TRANSPORT", "Unsupported Android transport.", null)
+        val transport = args["transport"] as? String
+            ?: return result.error("INVALID_TRANSPORT", "An Android transport is required.", null)
+        val mode = TransportMode.fromWire(transport)
+        if (mode == null && transport != "wireless" && transport != "otg") {
+            result.error("INVALID_TRANSPORT", "Unsupported Android transport.", null)
+            return
+        }
         if (mode == TransportMode.SHIZUKU && !hasShizukuPermission()) {
             requestShizukuPermission { granted ->
                 if (granted) {
@@ -728,13 +782,24 @@ class MainActivity : FlutterActivity(), MethodChannel.MethodCallHandler,
         }
         val command = args["command"] as? String
             ?: return result.error("INVALID_COMMAND", "A command is required.", null)
+        val workingDir = args["workingDir"] as? String
         executor.execute {
             try {
-                val exitCode = backend.execOnce(
-                    mode = mode,
-                    command = command,
-                    workingDir = args["workingDir"] as? String,
-                )
+                val exitCode = if (mode == null) {
+                    adbTransport.execOnce(
+                        transport,
+                        args["serial"] as? String
+                            ?: throw IllegalArgumentException("An ADB device is required."),
+                        command,
+                        workingDir,
+                    )
+                } else {
+                    backend.execOnce(
+                        mode = mode,
+                        command = command,
+                        workingDir = workingDir,
+                    )
+                }
                 mainHandler.post { result.success(exitCode) }
             } catch (error: Exception) {
                 mainHandler.post {
@@ -817,5 +882,6 @@ class MainActivity : FlutterActivity(), MethodChannel.MethodCallHandler,
         private const val SHIZUKU_REQUEST_CODE = 2307
         private const val DOCUMENT_REQUEST_CODE = 2308
         private const val FILE_ACCESS_REQUEST_CODE = 2309
+        private const val DISCOVERY_PERMISSION_REQUEST_CODE = 2310
     }
 }

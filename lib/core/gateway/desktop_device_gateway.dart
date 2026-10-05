@@ -151,6 +151,16 @@ class DesktopDeviceGateway implements DeviceGateway {
   }
 
   @override
+  Future<ConnectionCheck> verifyConnection(SessionSpec spec) async {
+    try {
+      await _runShell(spec, 'true');
+      return const ConnectionCheck(ok: true, message: 'Connected.');
+    } catch (error) {
+      return ConnectionCheck(ok: false, message: '$error');
+    }
+  }
+
+  @override
   Future<DeviceRef> connectWireless(String host, int port) async {
     final serial = _endpoint(host, port);
     final result = await _runAdbResult(['connect', serial]);
